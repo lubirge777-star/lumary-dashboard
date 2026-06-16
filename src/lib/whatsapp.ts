@@ -1,6 +1,6 @@
 import { getConnectionState, sendMessage as baileysSendMessage, startSocket, getQR } from "./whatsapp-provider"
 
-export async function checkEvolutionConnection(): Promise<{ connected: boolean; state?: string; qrUrl?: string; managerUrl?: string }> {
+export async function checkWhatsAppConnection(): Promise<{ connected: boolean; state?: string; qrUrl?: string }> {
   await startSocket()
   const { state, connected } = getConnectionState()
   return { connected, state, qrUrl: connected ? undefined : "/api/v1/whatsapp/qr" }

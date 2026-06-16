@@ -1,7 +1,7 @@
 import type { Client, Project, Payment, Expense, Retainer, Activity, ProjectStatus, Appointment, AppointmentFormData } from "@/types"
 import { mockClients, mockProjects, mockPayments, mockExpenses, mockRetainers, mockActivities } from "@/lib/mock/data"
 
-export async function saveMessage(data: { direction: string; channel: string; content: string; clientId: string; projectId?: string; evolutionMessageId?: string; chatwootMessageId?: string }): Promise<{ id: string } | null> {
+export async function saveMessage(data: { direction: string; channel: string; content: string; clientId: string; projectId?: string }): Promise<{ id: string } | null> {
   const p = await db()
   if (!p) return null
   const msg = await p.message.create({ data: { ...data, createdAt: new Date() } as any })
@@ -380,17 +380,9 @@ export async function getPipelineData() {
 }
 
 export async function getSettings() {
-  const evolutionKey = process.env.EVOLUTION_API_KEY
-  const chatwootKey = process.env.CHATWOOT_API_KEY
-  const typebotKey = process.env.TYPEBOT_API_KEY
-
   return {
     pricingFloors: { "Brand Starter": 150000, "Social Media Pack": 120000, "CV Redesign": 10000, "Thumbnails": 5000, "Weekly Promo Pack": 80000 },
-    integrations: [
-      { name: "Evolution API", status: evolutionKey ? "Connected" : "Disconnected", desc: "WhatsApp messaging" },
-      { name: "Chatwoot", status: chatwootKey ? "Connected" : "Disconnected", desc: "Customer support platform" },
-      { name: "Typebot", status: typebotKey ? "Connected" : "Disconnected", desc: "Chatbot automation" },
-    ],
+    integrations: [],
     quickReplies: [
       { key: "greeting", title: "Greeting", content: "Habari! Karibu LUMARY Studio. Ningekusaidiaje leo?" },
       { key: "pricing", title: "Pricing Request", content: "Asante kwa kuuliza. Haya ndio maelezo ya bei zetu..." },
@@ -420,7 +412,6 @@ export async function getInboxThreads() {
       const cid = msg.clientId
       if (!grouped.has(cid)) {
         const whatsappMsgs = messages.filter((m: any) => m.clientId === cid && m.channel === "whatsapp")
-        const chatwootMsgs = messages.filter((m: any) => m.clientId === cid && m.channel === "chatwoot")
         grouped.set(cid, {
           id: cid,
           clientId: cid,

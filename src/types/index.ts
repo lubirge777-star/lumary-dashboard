@@ -140,7 +140,7 @@ export interface Retainer {
 export interface Message {
   id: string
   direction: "inbound" | "outbound"
-  channel: "whatsapp" | "chatwoot" | "typebot"
+  channel: "whatsapp" | "bot"
   content: string
   mediaUrl?: string
   clientId: string
@@ -165,7 +165,7 @@ export interface Activity {
 
 export interface WebhookEvent {
   id: string
-  source: "evolution" | "chatwoot" | "typebot"
+  source: string
   eventType: string
   payload: Record<string, unknown>
   createdAt: string

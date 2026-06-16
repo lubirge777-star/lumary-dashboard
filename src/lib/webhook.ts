@@ -1,5 +1,5 @@
 export interface WebhookEvent {
-  source: "evolution" | "chatwoot" | "typebot"
+  source: string
   type: string
   payload: Record<string, unknown>
   raw: unknown
