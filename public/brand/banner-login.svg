@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff8f6"/>
+      <stop offset="50%" stop-color="#fff1ec"/>
+      <stop offset="100%" stop-color="#fdeae3"/>
+    </linearGradient>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8E5E"/>
+      <stop offset="100%" stop-color="#9d4319"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4FACFE"/>
+      <stop offset="100%" stop-color="#00629f"/>
+    </linearGradient>
+    <linearGradient id="g3" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C896FF"/>
+      <stop offset="100%" stop-color="#7e35ca"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="600" height="400" fill="url(#bg)" rx="32"/>
+  <!-- Decorative orbs -->
+  <circle cx="520" cy="80" r="200" fill="#FF8E5E" opacity="0.04"/>
+  <circle cx="80" cy="350" r="180" fill="#4FACFE" opacity="0.04"/>
+  <circle cx="300" cy="200" r="250" fill="#C896FF" opacity="0.03"/>
+  <!-- Grid pattern overlay -->
+  <g opacity="0.02" stroke="#9d4319" stroke-width="0.5">
+    <line x1="0" y1="40" x2="600" y2="40"/>
+    <line x1="0" y1="80" x2="600" y2="80"/>
+    <line x1="0" y1="120" x2="600" y2="120"/>
+    <line x1="0" y1="160" x2="600" y2="160"/>
+    <line x1="0" y1="200" x2="600" y2="200"/>
+    <line x1="0" y1="240" x2="600" y2="240"/>
+    <line x1="0" y1="280" x2="600" y2="280"/>
+    <line x1="0" y1="320" x2="600" y2="320"/>
+    <line x1="0" y1="360" x2="600" y2="360"/>
+    <line x1="40" y1="0" x2="40" y2="400"/>
+    <line x1="80" y1="0" x2="80" y2="400"/>
+    <line x1="120" y1="0" x2="120" y2="400"/>
+    <line x1="160" y1="0" x2="160" y2="400"/>
+    <line x1="200" y1="0" x2="200" y2="400"/>
+    <line x1="240" y1="0" x2="240" y2="400"/>
+    <line x1="280" y1="0" x2="280" y2="400"/>
+    <line x1="320" y1="0" x2="320" y2="400"/>
+    <line x1="360" y1="0" x2="360" y2="400"/>
+    <line x1="400" y1="0" x2="400" y2="400"/>
+    <line x1="440" y1="0" x2="440" y2="400"/>
+    <line x1="480" y1="0" x2="480" y2="400"/>
+    <line x1="520" y1="0" x2="520" y2="400"/>
+    <line x1="560" y1="0" x2="560" y2="400"/>
+  </g>
+  <!-- Brand icon mark (center) -->
+  <rect x="264" y="60" width="72" height="72" rx="20" fill="url(#g1)" opacity="0.08"/>
+  <!-- Large L letterform -->
+  <path d="M284 74h12v30h28v10h-40V74z" fill="url(#g1)"/>
+  <path d="M310 70l16 16-16 16V70z" fill="url(#g2)" opacity="0.6"/>
+  <circle cx="324" cy="110" r="4.5" fill="url(#g3)"/>
+  <!-- LUMARY text -->
+  <text x="240" y="170" font-family="'Plus Jakarta Sans', 'Inter', sans-serif" font-size="42" font-weight="800" letter-spacing="-1" fill="#231916" text-anchor="middle">
+    LUMARY
+  </text>
+  <!-- Studio badge -->
+  <rect x="259" y="182" width="82" height="24" rx="12" fill="#FF8E5E" opacity="0.12"/>
+  <text x="272" y="199" font-family="'Plus Jakarta Sans', 'Inter', sans-serif" font-size="12" font-weight="700" letter-spacing="2.5" fill="#9d4319">
+    STUDIO
+  </text>
+  <!-- Tagline -->
+  <text x="300" y="250" font-family="'Inter', sans-serif" font-size="14" font-weight="400" letter-spacing="0.3" fill="#89726a" text-anchor="middle">
+    Creative Business Suite
+  </text>
+  <!-- Decorative dots -->
+  <circle cx="180" cy="120" r="3" fill="#FF8E5E" opacity="0.3"/>
+  <circle cx="440" cy="90" r="4" fill="#4FACFE" opacity="0.25"/>
+  <circle cx="150" cy="300" r="5" fill="#C896FF" opacity="0.2"/>
+  <circle cx="480" cy="320" r="3" fill="#FF8E5E" opacity="0.25"/>
+  <circle cx="380" cy="340" r="4" fill="#4FACFE" opacity="0.15"/>
+  <!-- Bottom decorative wave -->
+  <path d="M0 380 Q150 360 300 380 Q450 400 600 380 L600 400 L0 400Z" fill="#9d4319" opacity="0.04"/>
+</svg>

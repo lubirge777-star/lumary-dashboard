@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <!-- Inbound arrow (left) -->
+  <path d="M4 12H12" stroke="#9d4319" stroke-width="2" stroke-linecap="round"/>
+  <path d="M8 8L4 12L8 16" stroke="#9d4319" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Vertical flow through center -->
+  <path d="M12 4V20" stroke="#56423b" stroke-width="2" stroke-linecap="round"/>
+  <!-- Processing nodes -->
+  <circle cx="12" cy="6" r="2.5" fill="#00629f"/>
+  <circle cx="12" cy="12" r="2.5" fill="#9d4319"/>
+  <circle cx="12" cy="18" r="2.5" fill="#43E97B"/>
+  <!-- Outbound arrow (right) -->
+  <path d="M12 12H20" stroke="#7e35ca" stroke-width="2" stroke-linecap="round"/>
+  <path d="M16 8L20 12L16 16" stroke="#7e35ca" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

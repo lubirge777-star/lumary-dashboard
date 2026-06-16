@@ -1,0 +1,816 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  OWNER
+  AGENT
+  VIEWER
+}
+
+enum ClientStatus {
+  ACTIVE
+  RETAINER
+  DORMANT
+  CHURNED
+}
+
+enum ProjectStatus {
+  NEW_INQUIRY
+  QUOTED
+  DEPOSIT_PAID
+  IN_PROGRESS
+  REVISION
+  FINAL_DELIVERED
+  PAID
+  RETAINER_PITCH
+}
+
+enum PaymentStatus {
+  UNPAID
+  FIFTY_PERCENT
+  PAID
+  OVERDUE
+  REFUNDED
+}
+
+enum PaymentMethod {
+  MPESA
+  BANK
+  CASH
+  STRIPE
+  OTHER
+}
+
+enum RetainerPackage {
+  WHATSAPP_PACK
+  SOCIAL_MEDIA_PACK
+  WEEKLY_PROMO_PACK
+  MONTHLY_STATUS_MARKETING
+  CREATOR_MONTHLY
+  BRAND_MANAGER
+  CUSTOM
+}
+
+enum ActivityType {
+  CLIENT_CREATED
+  PROJECT_CREATED
+  PROJECT_STATUS_CHANGED
+  PAYMENT_RECEIVED
+  EXPENSE_LOGGED
+  RETAINER_CREATED
+  RETAINER_RENEWED
+  MESSAGE_SENT
+  MESSAGE_RECEIVED
+  FILE_UPLOADED
+  NOTE_ADDED
+  SETTINGS_UPDATED
+  APPOINTMENT_SCHEDULED
+  APPOINTMENT_CANCELLED
+}
+
+enum ContentDeliveryStatus {
+  PENDING
+  DELIVERED
+  OVERDUE
+  ACCEPTED
+  REVISION_REQUESTED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      UserRole @default(AGENT)
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedProjects Project[] @relation("AssignedAgent")
+  activities       Activity[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Client {
+  id              String       @id @default(cuid())
+  name            String
+  whatsappNumber  String       @unique
+  email           String?
+  businessType    String?
+  location        String?
+  servicesUsed    String[]
+  totalSpent      Int          @default(0)
+  firstProjectDate DateTime?
+  lastProjectDate DateTime?
+  status          ClientStatus @default(ACTIVE)
+  referralSource  String?
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?
+
+  projects  Project[]
+  payments  Payment[]
+  retainers Retainer[]
+  messages  Message[]
+
+  @@index([status])
+  @@index([whatsappNumber])
+  @@index([referralSource])
+  @@index([totalSpent])
+  @@index([createdAt])
+}
+
+model Project {
+  id              String        @id @default(cuid())
+  clientId        String
+  client          Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  serviceType     String
+  description     String?
+  quotedAmount    Int
+  depositAmount   Int?
+  status          ProjectStatus @default(NEW_INQUIRY)
+  priority        String?
+  assignedAgentId String?
+  assignedAgent   User?         @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+
+  quotedAt        DateTime?
+  depositPaidAt   DateTime?
+  startedAt       DateTime?
+  v1DeliveredAt   DateTime?
+  finalDeliveredAt DateTime?
+  paidAt          DateTime?
+
+  revisionsUsed   Int           @default(0)
+  maxRevisions    Int           @default(2)
+  rushFee         Int?          @default(0)
+
+  driveFolderUrl  String?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  payments        Payment[]
+  messages        Message[]
+  steps           PipelineStep[]
+
+  @@index([clientId])
+  @@index([status])
+  @@index([assignedAgentId])
+  @@index([createdAt])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  clientId       String
+  client         Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectId      String?
+  project        Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  amount         Int
+  usdEquiv       Int?
+  method         PaymentMethod @default(MPESA)
+  status         PaymentStatus @default(UNPAID)
+
+  mpesaReference String?
+  receiptUrl     String?
+  balanceDue     Int?
+
+  notes          String?
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+
+  @@index([clientId])
+  @@index([projectId])
+  @@index([status])
+  @@index([paidAt])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  category    String
+  description String
+  amount      Int
+  receipt     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([category])
+  @@index([createdAt])
+}
+
+model Retainer {
+  id                String           @id @default(cuid())
+  clientId          String
+  client            Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  package           RetainerPackage
+  monthlyValue      Int
+  contentDueBy      DateTime
+  status            String           @default("active")
+
+  currentMonth      String?
+  graphicsDue       Int              @default(12)
+  graphicsDelivered Int              @default(0)
+
+  paymentStatus     String           @default("unpaid")
+  lastPaymentDate   DateTime?
+  nextPaymentDate   DateTime?
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@unique([clientId, currentMonth])
+  @@index([clientId])
+  @@index([nextPaymentDate])
+  @@index([paymentStatus])
+}
+
+model Message {
+  id                 String   @id @default(cuid())
+  direction          String
+  channel            String
+  content            String
+  mediaUrl           String?
+
+  clientId           String
+  client             Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  projectId          String?
+  project            Project? @relation(fields: [projectId], references: [id])
+  userId             String?
+
+  evolutionMessageId String?  @unique
+  chatwootMessageId  String?  @unique
+
+  createdAt          DateTime @default(now())
+
+  @@index([clientId])
+  @@index([channel])
+  @@index([createdAt])
+  @@index([evolutionMessageId])
+}
+
+model Activity {
+  id         String       @id @default(cuid())
+  type       ActivityType
+  actorId    String?
+  actorName  String?
+
+  targetType String
+  targetId   String
+
+  meta       Json?
+  createdAt  DateTime     @default(now())
+
+  user       User?        @relation(fields: [actorId], references: [id])
+
+  @@index([targetType, targetId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  title     String
+  description String?
+  startTime DateTime
+  endTime   DateTime?
+  allDay    Boolean  @default(false)
+
+  clientId  String?
+  projectId String?
+
+  color     String?
+  status    String   @default("scheduled")
+
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([startTime])
+  @@index([clientId])
+  @@index([status])
+}
+
+model Integration {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  status      String    @default("disconnected")
+  lastSyncAt  DateTime?
+  config      Json?
+  errorMessage String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+}
+
+model QuickReply {
+  id        String   @id @default(cuid())
+  shortcut  String   @unique
+  title     String
+  content   String
+  category  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shortcut])
+  @@index([category])
+}
+
+model WebhookLog {
+  id        String   @id @default(cuid())
+  source    String
+  eventType String
+  payload   Json
+  status    String   @default("received")
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([source])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model AutomationRule {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+
+  trigger     String   @default("message_received")
+  conditions  Json     @default("[]")
+  actions     Json     @default("[]")
+
+  isActive    Boolean  @default(true)
+  runCount    Int      @default(0)
+  lastRunAt   DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([trigger])
+  @@index([isActive])
+}
+
+model AISuggestion {
+  id          String   @id @default(cuid())
+  type        String
+  title       String
+  description String
+  severity    String   @default("info")
+  meta        Json?
+  source      String   @default("ai")
+
+  targetType  String?
+  targetId    String?
+
+  isDismissed Boolean  @default(false)
+  isApplied   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+
+  @@index([type])
+  @@index([isDismissed])
+  @@index([createdAt])
+}
+
+enum AutomationTrigger {
+  MESSAGE_RECEIVED
+  MESSAGE_SENT
+  PAYMENT_RECEIVED
+  PROJECT_CREATED
+  PROJECT_STATUS_CHANGED
+  RETAINER_DUE
+  CLIENT_CREATED
+  INACTIVITY_ALERT
+}
+
+enum AutomationActionType {
+  SEND_WHATSAPP
+  UPDATE_PROJECT_STATUS
+  CREATE_ACTIVITY
+  SEND_EMAIL
+  CREATE_REMINDER
+  SUGGEST_ACTION
+}
+
+// ── Spec Feature Models ──────────────────────────────────────────────
+
+enum ServiceCategory {
+  QUICK_GRAPHICS
+  PACKAGES
+  RETAINERS
+  SETUP
+  WEBSITES
+}
+
+model ServicePricing {
+  id          String          @id @default(cuid())
+  name        String
+  category    ServiceCategory
+  floorTsh    Int
+  ceilingTsh  Int
+  floorUsd    Int?
+  ceilingUsd  Int?
+  estimatedHr Float?
+  isActive    Boolean         @default(true)
+  sortOrder   Int             @default(0)
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model PipelineStep {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  step        String   // inquiry | quote | deposit | brief | deliver | revise | final | followup
+  completedAt DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@unique([projectId, step])
+  @@index([projectId])
+}
+
+model IncomeLog {
+  id            String   @id @default(cuid())
+  weekStart     DateTime
+  amountTsh     Int
+  amountUsd     Int?
+  clientCount   Int      @default(0)
+  retainerCount Int      @default(0)
+  paidClients   Int      @default(0)
+  unpaidAmount  Int      @default(0)
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  @@index([weekStart])
+}
+
+model WedgeLog {
+  id          String   @id @default(cuid())
+  problem     String
+  description String?
+  clientCount Int      @default(1)
+  frequency   String?  // daily | weekly | monthly
+  potential   String?  // low | medium | high
+  notes       String?
+  isProduct   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clientCount])
+  @@index([potential])
+}
+
+model LearningProgress {
+  id          String    @id @default(cuid())
+  track       String    // coding | figma | english | aiguang | reading
+  phase       String?
+  taskName    String
+  completedAt DateTime?
+  streak      Int       @default(0)
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([track])
+  @@index([completedAt])
+}
+
+model ContentCalendar {
+  id           String   @id @default(cuid())
+  platform     String   // tiktok | instagram | facebook | youtube | whatsapp
+  pillar       String?  // portfolio | education | personal | engagement
+  contentText  String?
+  mediaUrl     String?
+  caption      String?
+  hashtags     String?
+  scheduledFor DateTime
+  postedAt     DateTime?
+  status       String   @default("draft") // draft | scheduled | posted | cancelled
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([platform])
+  @@index([scheduledFor])
+  @@index([status])
+}
+
+model GrowthMilestone {
+  id           String   @id @default(cuid())
+  period       String   // now | month1-2 | month2-4 | month4-6 | month6-10 | month10-14 | year2 | year3-5 | year5-10 | year10-20
+  title        String
+  targetIncome String?
+  items        String[]
+  isComplete   Boolean  @default(false)
+  completedAt  DateTime?
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([period])
+}
+
+// ── v7 Command Center Models ──────────────────────────────────────────
+
+model ArabicSession {
+  id        String   @id @default(cuid())
+  date      DateTime @default(now())
+  type      String   // duo | quran | video | speak
+  duration  Int      @default(15)
+  notes     String?
+  streak    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@index([type])
+}
+
+model Grade {
+  id           String @id @default(cuid())
+  courseCode   String
+  courseName   String
+  instructor   String?
+  assignment   Float? @default(0)
+  midterm      Float? @default(0)
+  exam         Float? @default(0)
+  total        Float? @default(0)
+  targetExam   Float?
+  semester     String @default("2025/2026")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([courseCode, semester])
+  @@index([semester])
+}
+
+model Habit {
+  id        String   @id @default(cuid())
+  name      String
+  icon      String   @default("✅")
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  logs HabitLog[]
+
+  @@index([isActive])
+}
+
+model HabitLog {
+  id        String   @id @default(cuid())
+  habitId   String
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date      DateTime @default(now())
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([habitId, date])
+  @@index([date])
+}
+
+model TimerSession {
+  id        String   @id @default(cuid())
+  mode      String   @default("focus") // focus | short | long
+  duration  Int      @default(25)
+  taskLabel String?
+  phase     String?
+  completed Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([phase])
+}
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  category  String   @default("daily") // daily | learn | project | deen | mary | goal
+  title     String?
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([createdAt])
+}
+
+model Book {
+  id          String   @id @default(cuid())
+  title       String
+  author      String?
+  pages       Int      @default(0)
+  status      String   @default("unread") // unread | reading | finished
+  rating      Int?
+  notes       String?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sessions ReadingSession[]
+
+  @@index([status])
+}
+
+model ReadingSession {
+  id        String   @id @default(cuid())
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  pagesRead Int      @default(1)
+  date      DateTime @default(now())
+  streak    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([bookId])
+  @@index([date])
+}
+
+model Goal {
+  id          String  @id @default(cuid())
+  level       String  // dream | year10 | year | quarter | month | week | today
+  title       String
+  description String?
+  parentId    String?
+  parent      Goal?   @relation("GoalHierarchy", fields: [parentId], references: [id])
+  children    Goal[]  @relation("GoalHierarchy")
+  sortOrder   Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([level])
+  @@index([parentId])
+}
+
+model Idea {
+  id            String   @id @default(cuid())
+  problem       String
+  solution      String?
+  targetUser    String?
+  validationNotes String?
+  status        String   @default("idea") // idea | talking | building | validated | abandoned
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+}
+
+model Contact {
+  id            String   @id @default(cuid())
+  name          String
+  company       String?
+  role          String?
+  notes         String?
+  platform      String?  // linkedin | whatsapp | twitter | email | other
+  profileUrl    String?
+  lastContacted DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([name])
+}
+
+model Commitment {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([completed])
+  @@index([dueDate])
+}
+
+model SaasIdea {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  market      String?
+  techStack   String?
+  status      String   @default("idea") // idea | validating | building | live | abandoned
+  url         String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+}
+
+model WeeklyReview {
+  id           String   @id @default(cuid())
+  weekStart    DateTime
+  wins         String?
+  lessons      String?
+  priorities   String?
+  energy       Int?
+  focus        Int?
+  habitPercent Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([weekStart])
+  @@index([weekStart])
+}
+
+model PortfolioProject {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      String   @default("idea") // idea | building | shipped | earning
+  url         String?
+  techStack   String?
+  startedAt   DateTime?
+  launchedAt  DateTime?
+  income      Int      @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+}
+
+model SkillRating {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  rating    Int      @default(5) // 1-10
+  category  String?  // dev | design | language | business
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+}
+
+model TrajectoryMilestone {
+  id          String   @id @default(cuid())
+  year        String   // year1 | year2 | year3 | year5 | year10
+  label       String
+  target      String?
+  income      String?
+  isCurrent   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([year])
+}
+
+model Movie {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  title     String
+  year      Int
+  saga      String?
+  phase     String?
+  watched   Boolean  @default(false)
+  withMary  Boolean  @default(false)
+  rewatch   Boolean  @default(false)
+  category  String?  // mcu | datenight
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([saga])
+  @@index([watched])
+}
+
+model UserConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  updatedAt DateTime @updatedAt
+}
+
+model AgentNudge {
+  id            String   @id @default(cuid())
+  type          String   // habit | goal | focus | payment | project | review | cross_domain
+  title         String
+  message       String
+  severity      String   // low | medium | high | critical
+  category      String?
+  metadata      Json?    // { habitId?, goalId?, paymentId?, projectId?, patterns?, ... }
+  acknowledged  Boolean  @default(false)
+  acknowledgedAt DateTime?
+  sentToWhatsApp Boolean @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([type])
+  @@index([severity])
+  @@index([acknowledged])
+  @@index([createdAt])
+}
