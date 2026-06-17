@@ -1,9 +1,14 @@
 import { PrismaClient } from "../generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
+import pg from "pg"
 
 function createPrisma() {
+  const pool = new pg.Pool({
+    connectionString: process.env.DATABASE_URL!,
+    ssl: { rejectUnauthorized: false },
+  })
   return new PrismaClient({
-    adapter: new PrismaPg(process.env.DATABASE_URL!),
+    adapter: new PrismaPg(pool),
   })
 }
 
