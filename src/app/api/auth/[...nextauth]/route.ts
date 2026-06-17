@@ -1,11 +1,9 @@
 import { handlers } from "@/lib/auth"
 
-export const GET = handlers.GET as unknown as (
-  request: Request,
-  context: { params: Promise<{ nextauth: string[] }> }
-) => Promise<Response>
+export async function GET(request: Request) {
+  return handlers.GET(request)
+}
 
-export const POST = handlers.POST as unknown as (
-  request: Request,
-  context: { params: Promise<{ nextauth: string[] }> }
-) => Promise<Response>
+export async function POST(request: Request) {
+  return handlers.POST(request)
+}

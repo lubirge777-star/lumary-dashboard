@@ -1,7 +1,13 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 
+const secret =
+  process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? "lumary-dash-secret-32char-min-for-nextauth!!"
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
+  basePath: "/api/auth",
+  secret,
   providers: [
     Credentials({
       name: "Credentials",
