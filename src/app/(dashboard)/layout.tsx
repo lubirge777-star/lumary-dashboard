@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import {
@@ -14,7 +14,7 @@ import {
   Palette, TrendingUp, Flame, Brain, Globe,
   Trophy, Film, Heart, Building2,
   CheckSquare, ListChecks, Eye, Briefcase, Cloud,
-  Sun, Bot,
+  Sun, Bot, Star, ChevronDown,
 } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import clsx from "clsx"
@@ -66,7 +66,6 @@ const nav = {
     { label: "Goals", href: "/goals", icon: Target },
     { label: "Arabic", href: "/arabic", icon: BookMarked },
     { label: "Focus", href: "/focus", icon: Zap },
-    { label: "Heatmap", href: "/heatmap", icon: Flame },
     { label: "Trajectory", href: "/trajectory", icon: Trophy },
   ],
   ventures: [
@@ -74,15 +73,16 @@ const nav = {
     { label: "Portfolio", href: "/portfolio", icon: Briefcase },
     { label: "SaaS Bank", href: "/saas-bank", icon: Cloud },
     { label: "Network", href: "/network", icon: Users },
-    { label: "ConBridge", href: "/conbridge", icon: Building2 },
     { label: "Accountability", href: "/accountability", icon: ListChecks },
     { label: "Weekly Review", href: "/weekly-review", icon: ClipboardList },
-    { label: "Wedge", href: "/wedge", icon: Lightbulb },
   ],
   entertainment: [
     { label: "Movies", href: "/movies", icon: Film },
   ],
 }
+
+const allItems = Object.values(nav).flat()
+type NavItem = (typeof allItems)[number]
 
 const bottomNav = [
   { href: "/", icon: LayoutDashboard, label: "Home" },
@@ -92,6 +92,37 @@ const bottomNav = [
   { href: "/finance", icon: BarChart3, label: "Finance" },
 ]
 
+function useLocalStorage<T>(key: string, fallback: T): [T, (v: T | ((prev: T) => T)) => void] {
+  const [value, setValue] = useState<T>(fallback)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(key)
+      if (stored) setValue(JSON.parse(stored) as T)
+    } catch { /* ignore */ }
+  }, [key])
+  const setAndPersist = useCallback(
+    (v: T | ((prev: T) => T)) => {
+      setValue((prev) => {
+        const next = typeof v === "function" ? (v as (prev: T) => T)(prev) : v
+        try { localStorage.setItem(key, JSON.stringify(next)) } catch { /* ignore */ }
+        return next
+      })
+    },
+    [key]
+  )
+  return [value, setAndPersist]
+}
+
+const sectionMeta = [
+  { key: "dashboard", label: "Dashboard" },
+  { key: "business", label: "Business" },
+  { key: "operations", label: "Operations" },
+  { key: "growth", label: "Growth" },
+  { key: "personal", label: "Personal" },
+  { key: "ventures", label: "Ventures" },
+  { key: "entertainment", label: "Entertainment" },
+] as const
+
 export default function DashboardLayout({
   children,
 }: {
@@ -100,8 +131,96 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const { data: session } = useSession()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [collapsed, setCollapsed] = useLocalStorage<Record<string, boolean>>("sidebar-collapsed", {})
+  const [pinned, setPinned] = useLocalStorage<string[]>("sidebar-pinned", [])
 
   const isActive = (href: string) => pathname === href
+
+  const toggleCollapse = (key: string) => {
+    setCollapsed((prev: Record<string, boolean>) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const togglePin = (href: string) => {
+    setPinned((prev: string[]) =>
+      prev.includes(href) ? prev.filter((h) => h !== href) : [...prev, href]
+    )
+  }
+
+  const isPinned = (href: string) => pinned.includes(href)
+
+  const pinnedItems = pinned
+    .map((href) => allItems.find((i: NavItem) => i.href === href))
+    .filter(Boolean) as NavItem[]
+
+  const renderItem = (item: NavItem) => {
+    const Icon = item.icon
+    const active = isActive(item.href)
+    return (
+      <div key={item.href} className="group flex items-center gap-0">
+        <Link
+          href={item.href}
+          onClick={() => setSidebarOpen(false)}
+          className={clsx(
+            "flex-1 flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all",
+            active
+              ? "bg-primary-container/10 text-primary font-bold shadow-sm"
+              : "text-on-surface-variant hover:bg-black/5"
+          )}
+        >
+          <Icon className={clsx("w-[18px] h-[18px] shrink-0", !active && "opacity-60")} />
+          <span className="text-sm">{item.label}</span>
+        </Link>
+        <button
+          onClick={(e) => { e.stopPropagation(); togglePin(item.href) }}
+          className={clsx(
+            "opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-black/10",
+            isPinned(item.href) && "!opacity-100"
+          )}
+          title={isPinned(item.href) ? "Unpin" : "Pin to top"}
+        >
+          <Star className={clsx("w-3.5 h-3.5", isPinned(item.href) ? "fill-yellow-400 text-yellow-400" : "text-on-surface-variant/50")} />
+        </button>
+      </div>
+    )
+  }
+
+  const renderSection = (section: { key: string; label: string }, si: number) => {
+    const items = (nav as Record<string, NavItem[]>)[section.key] || []
+    if (items.length === 0) return null
+    const isOpen = !collapsed[section.key]
+    const visibleItems = items.filter((i: NavItem) => !isPinned(i.href))
+    if (visibleItems.length === 0) return null
+    return (
+      <div key={section.key}>
+        {si > 0 && <div className="h-px bg-outline-variant/10 mx-4 my-3" />}
+        <button
+          onClick={() => toggleCollapse(section.key)}
+          className="flex items-center justify-between w-full px-4 mb-1 group"
+        >
+          <span className="text-label-bold text-on-surface-variant uppercase tracking-widest opacity-70">
+            {section.label}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="text-[10px] text-on-surface-variant/50 font-mono">{visibleItems.length}</span>
+            <ChevronDown
+              className={clsx(
+                "w-3.5 h-3.5 text-on-surface-variant/40 transition-transform duration-200",
+                isOpen && "rotate-180"
+              )}
+            />
+          </span>
+        </button>
+        <div
+          className={clsx(
+            "space-y-0.5 overflow-hidden transition-all duration-200",
+            isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+          )}
+        >
+          {visibleItems.map(renderItem)}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -134,48 +253,20 @@ export default function DashboardLayout({
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-4 space-y-1 pb-4">
-          {[
-            { key: "dashboard", label: "Dashboard" },
-            { key: "business", label: "Business" },
-            { key: "operations", label: "Operations" },
-            { key: "growth", label: "Growth" },
-            { key: "personal", label: "Personal" },
-            { key: "ventures", label: "Ventures" },
-            { key: "entertainment", label: "Entertainment" },
-          ].map((section, si) => {
-            const items = (nav as any)[section.key] || []
-            if (items.length === 0) return null
-            return (
-              <div key={section.key}>
-                {si > 0 && <div className="h-px bg-outline-variant/10 mx-4 my-3" />}
-                <p className="text-label-bold text-on-surface-variant uppercase px-4 mb-2 tracking-widest opacity-70">
-                  {section.label}
-                </p>
-                <div className="space-y-0.5">
-                  {items.map((item: any) => {
-                    const Icon = item.icon
-                    const active = isActive(item.href)
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setSidebarOpen(false)}
-                        className={clsx(
-                          "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all",
-                          active
-                            ? "bg-primary-container/10 text-primary font-bold shadow-sm"
-                            : "text-on-surface-variant hover:bg-black/5"
-                        )}
-                      >
-                        <Icon className={clsx("w-[18px] h-[18px] shrink-0", !active && "opacity-60")} />
-                        <span className="text-sm">{item.label}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
+          {/* Pinned section */}
+          {pinnedItems.length > 0 && (
+            <div className="mb-3">
+              <p className="text-label-bold text-primary uppercase px-4 mb-2 tracking-widest">
+                ★ Pinned
+              </p>
+              <div className="space-y-0.5">
+                {pinnedItems.map(renderItem)}
               </div>
-            )
-          })}
+              <div className="h-px bg-outline-variant/10 mx-4 my-3" />
+            </div>
+          )}
+          {/* Sections */}
+          {sectionMeta.map(renderSection)}
         </nav>
 
         {/* Sign out */}
@@ -203,7 +294,7 @@ export default function DashboardLayout({
               <Menu className="w-5 h-5" />
             </button>
             <h2 className="text-headline-md lg:text-headline-xl text-on-surface font-bold truncate max-w-[200px] md:max-w-none">
-              {Object.values(nav).flat().find((n: any) => isActive(n.href))?.label || "Overview"}
+              {allItems.find((n: NavItem) => isActive(n.href))?.label || "Overview"}
             </h2>
           </div>
           <div className="flex items-center gap-2 md:gap-8">
@@ -237,7 +328,7 @@ export default function DashboardLayout({
                   {session?.user?.name?.charAt(0) || "L"}
                 </div>
                 <div className="hidden md:flex">
-                  <RoleBadge role={(session?.user as any)?.role} />
+                  <RoleBadge role={(session as any)?.user?.role} />
                 </div>
               </div>
             </div>

@@ -15,7 +15,7 @@ import { ChartSkeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
 import type { Payment, Client, Project } from "@/types"
 import {
-  TrendingUp, Minus, Briefcase, AlertCircle, RefreshCw,
+  TrendingUp, Minus, Briefcase, AlertCircle, RefreshCw, Bot, Clock, DollarSign, Users,
 } from "lucide-react"
 
 const RevenueChart = dynamic(
@@ -116,6 +116,13 @@ export default function OverviewPage() {
     ? ((payments.length / clients.length) * 100)
     : 0
 
+  const needsAttention = useMemo(() => {
+    const stalled = projects.filter((p) => p.daysInStage > 7 && !["PAID", "FINAL_DELIVERED", "CANCELLED"].includes(p.status))
+    const unpaid = payments.filter((p) => p.status !== "PAID")
+    const totalDue = unpaid.reduce((s, p) => s + p.amount, 0)
+    return { stalled, unpaid, totalDue }
+  }, [projects, payments])
+
   const loading = projectsLoading || clientsLoading || paymentsLoading || activitiesLoading
   const hasError = projectsError || clientsError || paymentsError || activitiesError
 
@@ -192,6 +199,71 @@ export default function OverviewPage() {
     <div className="space-y-gutter">
       {/* Quick Actions */}
       <QuickActions />
+
+      {/* Ask Agent */}
+      <a
+        href="/agent"
+        className="block glass-card p-card-padding bg-gradient-to-r from-primary/5 to-transparent border border-primary/20 dark:border-primary/30 hover:border-primary/40 transition-all group"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shrink-0">
+            <Bot className="w-6 h-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-on-surface">Ask the Agent</h3>
+            <p className="text-xs text-on-surface-variant/80 mt-0.5">
+              Ask anything about your business, get daily scans, or run commands
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-primary shrink-0 group-hover:translate-x-1 transition-transform">
+            Open Chat →
+          </span>
+        </div>
+      </a>
+
+      {/* Needs Attention */}
+      {(needsAttention.stalled.length > 0 || needsAttention.unpaid.length > 0) && (
+        <div className="space-y-3 animate-fadeIn">
+          <h3 className="text-sm font-semibold text-on-surface tracking-wide uppercase opacity-70">
+            Needs Attention
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {needsAttention.stalled.length > 0 && (
+              <a href="/projects" className="glass-card p-4 card-hover flex items-center gap-3 border-l-4 border-l-amber-500">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 shrink-0">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-on-surface">{needsAttention.stalled.length} Stalled Project{needsAttention.stalled.length > 1 ? "s" : ""}</p>
+                  <p className="text-xs text-on-surface-variant/70">In stage for 7+ days — review pipeline</p>
+                </div>
+              </a>
+            )}
+            {needsAttention.unpaid.length > 0 && (
+              <a href="/finance" className="glass-card p-4 card-hover flex items-center gap-3 border-l-4 border-l-red-500">
+                <div className="w-9 h-9 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 shrink-0">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-on-surface">{needsAttention.unpaid.length} Unpaid Invoice{needsAttention.unpaid.length > 1 ? "s" : ""}</p>
+                  <p className="text-xs text-on-surface-variant/70">{formatTSh(needsAttention.totalDue)} outstanding</p>
+                </div>
+              </a>
+            )}
+            {activeClients > 0 && (
+              <a href="/clients" className="glass-card p-4 card-hover flex items-center gap-3 border-l-4 border-l-primary">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-on-surface">{activeClients} Active Client{activeClients > 1 ? "s" : ""}</p>
+                  <p className="text-xs text-on-surface-variant/70">{newThisWeek} new this week</p>
+                </div>
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-gutter animate-fadeInUp">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Briefcase, Plus, X, Loader2, AlertCircle, RefreshCw, Save } from "lucide-react"
+import { Briefcase, Plus, X, Loader2, AlertCircle, RefreshCw, Save, Construction, ExternalLink } from "lucide-react"
 import clsx from "clsx"
 import { useToast } from "@/components/ui/toast"
 
@@ -19,8 +19,22 @@ interface Project {
   url?: string | null; techStack?: string | null; income?: number | null; createdAt: string
 }
 
-export default function PortfolioPage() {
-  useEffect(() => { document.title = "Portfolio — LUMARY Studio" }, [])
+const CONBRIDGE_ITEMS = [
+  { skill: "Masonry", product: "Mason Job App", stack: "React Native + Supabase" },
+  { skill: "Soil Mechanics", product: "Construction Calculator App", stack: "Next.js + Python" },
+  { skill: "Architectural Drawing", product: "AR Blueprint Viewer", stack: "React Native + ARKit" },
+  { skill: "Mathematics", product: "Quantity Surveyor Tool", stack: "React + Prisma" },
+  { skill: "Arc Welding", product: "Welding Certification Tracker", stack: "Next.js + PostgreSQL" },
+  { skill: "Spreadsheets", product: "Construction ERP Lite", stack: "React + Node.js" },
+  { skill: "Plumbing", product: "Plumbing Estimator App", stack: "React Native" },
+]
+
+const TABS = [
+  { key: "projects", label: "Projects" },
+  { key: "ideas", label: "Product Ideas" },
+]
+
+function ProjectsTab() {
   const queryClient = useQueryClient(); const { toast } = useToast()
   const [showForm, setShowForm] = useState(false); const [filter, setFilter] = useState("all")
   const [name, setName] = useState(""); const [desc, setDesc] = useState(""); const [url, setUrl] = useState("")
@@ -44,7 +58,7 @@ export default function PortfolioPage() {
   })
 
   if (error) return (
-    <div className="flex items-center justify-center min-h-[400px] animate-fadeIn">
+    <div className="flex items-center justify-center min-h-[300px] animate-fadeIn">
       <div className="text-center">
         <div className="w-16 h-16 rounded-2xl bg-error-container border border-error/20 flex items-center justify-center mx-auto mb-4"><AlertCircle className="w-8 h-8 text-error" /></div>
         <h3 className="text-lg font-semibold text-on-surface mb-1">Failed to load portfolio</h3>
@@ -55,14 +69,11 @@ export default function PortfolioPage() {
   )
 
   return (
-    <div className="space-y-gutter animate-fadeIn">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Briefcase className="w-5 h-5 text-primary" /></div>
-          <h2 className="text-headline-lg font-bold text-on-surface">Project Portfolio</h2>
-        </div>
-        <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-semibold hover:bg-primary-fixed-dim transition-all">
-          {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}{showForm ? "Cancel" : "New Project"}
+        <p className="text-sm text-on-surface-variant/80">{projects.length} project{projects.length !== 1 ? "s" : ""}</p>
+        <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-on-primary text-xs font-semibold hover:bg-primary-fixed-dim transition-all">
+          {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}{showForm ? "Cancel" : "New Project"}
         </button>
       </div>
 
@@ -91,7 +102,7 @@ export default function PortfolioPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (<div key={i} className="glass-card p-card-padding space-y-4"><div className="h-4 w-24 rounded-xl bg-gradient-to-r from-surface-container-highest via-surface-container to-surface-container-highest bg-[length:200%_100%] animate-shimmer" /><div className="h-3 w-full rounded-xl bg-gradient-to-r from-surface-container-highest via-surface-container to-surface-container-highest bg-[length:200%_100%] animate-shimmer" /><div className="h-3 w-20 rounded-xl bg-gradient-to-r from-surface-container-highest via-surface-container to-surface-container-highest bg-[length:200%_100%] animate-shimmer" /></div>))}
         </div>
       ) : filtered.length === 0 ? (
@@ -101,7 +112,7 @@ export default function PortfolioPage() {
           <p className="text-sm text-on-surface-variant/70 max-w-sm mb-6">Start building your portfolio by adding your first project</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((p) => (
             <div key={p.id} className="glass-card p-card-padding card-hover flex flex-col">
               <div className="flex items-start justify-between mb-2">
@@ -121,6 +132,79 @@ export default function PortfolioPage() {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function ProductIdeasTab() {
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <Construction className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-on-surface">Construction → Product Bridge</p>
+          <p className="text-xs text-on-surface-variant/80">Turning trade skills into digital products</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">
+        {CONBRIDGE_ITEMS.map((item, i) => (
+          <div key={i} className="glass-card p-card-padding card-hover flex flex-col relative overflow-hidden">
+            <div className="absolute -right-6 -top-6 w-20 h-20 grad-orange rounded-full opacity-10 blur-2xl" />
+            <div className="relative z-10">
+              <div className="flex items-start justify-between mb-3">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">idea</span>
+                <ExternalLink className="w-4 h-4 text-on-surface-variant/80" />
+              </div>
+              <h3 className="text-sm font-bold text-on-surface mb-2">{item.skill}</h3>
+              <p className="text-xs text-on-surface-variant/70 font-medium mb-2">→ {item.product}</p>
+              <div className="mt-auto pt-3 border-t border-outline-variant/10">
+                <span className="text-[11px] font-mono text-primary bg-primary/5 px-2 py-1 rounded-md">{item.stack}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default function PortfolioPage() {
+  useEffect(() => { document.title = "Portfolio — LUMARY Studio" }, [])
+  const [activeTab, setActiveTab] = useState("projects")
+
+  return (
+    <div className="space-y-6 animate-fadeIn">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Briefcase className="w-5 h-5 text-primary" /></div>
+        <div>
+          <h2 className="text-headline-lg font-bold text-on-surface">Project Portfolio</h2>
+          <p className="text-xs text-on-surface-variant/80">Track your products and explore new ideas</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 rounded-xl bg-surface-variant/50 w-fit">
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.key
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={clsx(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all",
+                isActive ? "bg-white dark:bg-surface-container-high text-on-surface shadow-sm" : "text-on-surface-variant/80 hover:text-on-surface"
+              )}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {activeTab === "projects" ? <ProjectsTab /> : <ProductIdeasTab />}
     </div>
   )
 }
