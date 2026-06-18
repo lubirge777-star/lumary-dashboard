@@ -27,16 +27,37 @@ import { CommandPalette } from "@/components/command-palette"
 import { DarkModeToggle } from "@/components/dark-mode-toggle"
 
 const nav = {
-  menu: [
+  dashboard: [
     { label: "Today", href: "/today", icon: Sun },
     { label: "Overview", href: "/", icon: LayoutDashboard },
+    { label: "Agent", href: "/agent", icon: Bot },
+  ],
+  business: [
     { label: "Clients", href: "/clients", icon: Users },
     { label: "Pipeline", href: "/projects", icon: Kanban },
     { label: "Messages", href: "/messages", icon: Send },
+    { label: "Finance", href: "/finance", icon: Wallet },
     { label: "Calendar", href: "/calendar", icon: Calendar },
-    { label: "Agent", href: "/agent", icon: Bot },
     { label: "Retainers", href: "/retainers", icon: Repeat },
+    { label: "Analytics", href: "/analytics", icon: BarChart3 },
+    { label: "Content", href: "/content", icon: CalendarCheck },
+  ],
+  operations: [
+    { label: "Automation", href: "/automation", icon: Zap },
+    { label: "Agent Cron", href: "/agent?tab=cron", icon: Clock },
+    { label: "Templates", href: "/templates", icon: MessageSquareReply },
+    { label: "Pricing", href: "/pricing", icon: Receipt },
     { label: "Operations", href: "/operations", icon: ClipboardList },
+    { label: "Settings", href: "/settings", icon: Settings },
+  ],
+  growth: [
+    { label: "Learning", href: "/learning", icon: Brain },
+    { label: "Roadmap", href: "/roadmap", icon: TrendingUp },
+    { label: "Figma", href: "/figma-path", icon: Palette },
+    { label: "Skill Radar", href: "/skill-radar", icon: Eye },
+    { label: "Grades", href: "/grades", icon: GraduationCap },
+    { label: "Reading", href: "/reading", icon: BookOpen },
+    { label: "Resources", href: "/resources", icon: Globe },
   ],
   personal: [
     { label: "Habits", href: "/habits", icon: CheckSquare },
@@ -44,29 +65,9 @@ const nav = {
     { label: "Journal", href: "/journal", icon: PenLine },
     { label: "Goals", href: "/goals", icon: Target },
     { label: "Arabic", href: "/arabic", icon: BookMarked },
-    { label: "Grades", href: "/grades", icon: GraduationCap },
-    { label: "Reading", href: "/reading", icon: BookOpen },
-    { label: "Movies", href: "/movies", icon: Film },
-    { label: "Resources", href: "/resources", icon: Globe },
-  ],
-  growth: [
-    { label: "Roadmap", href: "/roadmap", icon: TrendingUp },
-    { label: "Figma", href: "/figma-path", icon: Palette },
-    { label: "Learning", href: "/learning", icon: Brain },
-    { label: "Skill Radar", href: "/skill-radar", icon: Eye },
-    { label: "Trajectory", href: "/trajectory", icon: Trophy },
-    { label: "Heatmap", href: "/heatmap", icon: Flame },
     { label: "Focus", href: "/focus", icon: Zap },
-  ],
-  business: [
-    { label: "Pricing", href: "/pricing", icon: Receipt },
-    { label: "Finance", href: "/finance", icon: Wallet },
-    { label: "Analytics", href: "/analytics", icon: BarChart3 },
-    { label: "Content", href: "/content", icon: CalendarCheck },
-    { label: "Wedge", href: "/wedge", icon: Lightbulb },
-    { label: "Templates", href: "/templates", icon: MessageSquareReply },
-    { label: "Automation", href: "/automation", icon: Zap },
-    { label: "Settings", href: "/settings", icon: Settings },
+    { label: "Heatmap", href: "/heatmap", icon: Flame },
+    { label: "Trajectory", href: "/trajectory", icon: Trophy },
   ],
   ventures: [
     { label: "Ideas", href: "/ideas", icon: Lightbulb },
@@ -76,6 +77,10 @@ const nav = {
     { label: "ConBridge", href: "/conbridge", icon: Building2 },
     { label: "Accountability", href: "/accountability", icon: ListChecks },
     { label: "Weekly Review", href: "/weekly-review", icon: ClipboardList },
+    { label: "Wedge", href: "/wedge", icon: Lightbulb },
+  ],
+  entertainment: [
+    { label: "Movies", href: "/movies", icon: Film },
   ],
 }
 
@@ -129,121 +134,48 @@ export default function DashboardLayout({
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-4 space-y-1 pb-4">
-          <p className="text-label-bold text-on-surface-variant uppercase px-4 mb-3 tracking-widest opacity-70">Menu</p>
-          <div className="space-y-1.5">
-            {nav.menu.map((item) => {
-              const Icon = item.icon
-              const active = isActive(item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={clsx(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-                    active
-                      ? "bg-primary-container/10 text-primary font-bold border-l-4 border-primary shadow-sm"
-                      : "text-on-surface-variant hover:bg-black/5"
-                  )}
-                >
-                  <Icon className={clsx("w-[22px] h-[22px] shrink-0", !active && "opacity-70")} />
-                  <span className="text-body-md">{item.label}</span>
-                </Link>
-              )
-            })}
-          </div>
-          <p className="text-label-bold text-on-surface-variant uppercase px-4 mb-3 mt-8 tracking-widest opacity-70">Personal</p>
-          <div className="space-y-1.5">
-            {nav.personal.map((item) => {
-              const Icon = item.icon
-              const active = isActive(item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={clsx(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-                    active
-                      ? "bg-primary-container/10 text-primary font-bold border-l-4 border-primary shadow-sm"
-                      : "text-on-surface-variant hover:bg-black/5"
-                  )}
-                >
-                  <Icon className={clsx("w-[22px] h-[22px] shrink-0", !active && "opacity-70")} />
-                  <span className="text-body-md">{item.label}</span>
-                </Link>
-              )
-            })}
-          </div>
-          <p className="text-label-bold text-on-surface-variant uppercase px-4 mb-3 mt-8 tracking-widest opacity-70">Growth</p>
-          <div className="space-y-1.5">
-            {nav.growth.map((item) => {
-              const Icon = item.icon
-              const active = isActive(item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={clsx(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-                    active
-                      ? "bg-primary-container/10 text-primary font-bold border-l-4 border-primary shadow-sm"
-                      : "text-on-surface-variant hover:bg-black/5"
-                  )}
-                >
-                  <Icon className={clsx("w-[22px] h-[22px] shrink-0", !active && "opacity-70")} />
-                  <span className="text-body-md">{item.label}</span>
-                </Link>
-              )
-            })}
-          </div>
-          <p className="text-label-bold text-on-surface-variant uppercase px-4 mb-3 mt-8 tracking-widest opacity-70">Business</p>
-          <div className="space-y-1.5">
-            {nav.business.map((item) => {
-              const Icon = item.icon
-              const active = isActive(item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={clsx(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-                    active
-                      ? "bg-primary-container/10 text-primary font-bold border-l-4 border-primary shadow-sm"
-                      : "text-on-surface-variant hover:bg-black/5"
-                  )}
-                >
-                  <Icon className={clsx("w-[22px] h-[22px] shrink-0", !active && "opacity-70")} />
-                  <span className="text-body-md">{item.label}</span>
-                </Link>
-              )
-            })}
-          </div>
-          <p className="text-label-bold text-on-surface-variant uppercase px-4 mb-3 mt-8 tracking-widest opacity-70">Ventures</p>
-          <div className="space-y-1.5">
-            {nav.ventures.map((item) => {
-              const Icon = item.icon
-              const active = isActive(item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={clsx(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-                    active
-                      ? "bg-primary-container/10 text-primary font-bold border-l-4 border-primary shadow-sm"
-                      : "text-on-surface-variant hover:bg-black/5"
-                  )}
-                >
-                  <Icon className={clsx("w-[22px] h-[22px] shrink-0", !active && "opacity-70")} />
-                  <span className="text-body-md">{item.label}</span>
-                </Link>
-              )
-            })}
-          </div>
+          {[
+            { key: "dashboard", label: "Dashboard" },
+            { key: "business", label: "Business" },
+            { key: "operations", label: "Operations" },
+            { key: "growth", label: "Growth" },
+            { key: "personal", label: "Personal" },
+            { key: "ventures", label: "Ventures" },
+            { key: "entertainment", label: "Entertainment" },
+          ].map((section, si) => {
+            const items = (nav as any)[section.key] || []
+            if (items.length === 0) return null
+            return (
+              <div key={section.key}>
+                {si > 0 && <div className="h-px bg-outline-variant/10 mx-4 my-3" />}
+                <p className="text-label-bold text-on-surface-variant uppercase px-4 mb-2 tracking-widest opacity-70">
+                  {section.label}
+                </p>
+                <div className="space-y-0.5">
+                  {items.map((item: any) => {
+                    const Icon = item.icon
+                    const active = isActive(item.href)
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={clsx(
+                          "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all",
+                          active
+                            ? "bg-primary-container/10 text-primary font-bold shadow-sm"
+                            : "text-on-surface-variant hover:bg-black/5"
+                        )}
+                      >
+                        <Icon className={clsx("w-[18px] h-[18px] shrink-0", !active && "opacity-60")} />
+                        <span className="text-sm">{item.label}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
         </nav>
 
         {/* Sign out */}
@@ -271,11 +203,7 @@ export default function DashboardLayout({
               <Menu className="w-5 h-5" />
             </button>
             <h2 className="text-headline-md lg:text-headline-xl text-on-surface font-bold truncate max-w-[200px] md:max-w-none">
-              {nav.menu.find((n) => isActive(n.href))?.label ||
-                nav.personal.find((n) => isActive(n.href))?.label ||
-                nav.growth.find((n) => isActive(n.href))?.label ||
-                nav.business.find((n) => isActive(n.href))?.label ||
-                nav.ventures.find((n) => isActive(n.href))?.label || "Overview"}
+              {Object.values(nav).flat().find((n: any) => isActive(n.href))?.label || "Overview"}
             </h2>
           </div>
           <div className="flex items-center gap-2 md:gap-8">

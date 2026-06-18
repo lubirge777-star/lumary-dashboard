@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import {
   Bot, Send, Plus, MessageSquare, Trash2, ChevronLeft, ChevronRight,
-  Sparkles, Loader2, Paperclip, X, FileText, Terminal,
+  Sparkles, Loader2, Paperclip, X, FileText, Terminal, Clock,
 } from "lucide-react"
 import Markdown from "@/components/agent/markdown"
 import clsx from "clsx"
@@ -22,8 +23,9 @@ interface Session {
   _count: { messages: number }
 }
 
-export default function AgentPage() {
+function AgentContent() {
   useEffect(() => { document.title = "Agent — LUMARY Studio" }, [])
+  const searchParams = useSearchParams()
 
   const [sessions, setSessions] = useState<Session[]>([])
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
@@ -33,12 +35,40 @@ export default function AgentPage() {
   const [streamingContent, setStreamingContent] = useState("")
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [cronLoading, setCronLoading] = useState(false)
+  const [cronResult, setCronResult] = useState<string | null>(null)
+  const cronRanRef = useRef(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+
+  // Auto-run cron on ?tab=cron
+  useEffect(() => {
+    if (searchParams.get("tab") === "cron" && !cronRanRef.current) {
+      cronRanRef.current = true
+      runCron()
+    }
+  }, [searchParams])
+
+  const runCron = async () => {
+    setCronLoading(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/v1/agent/cron")
+      const data = await res.json()
+      setCronResult(data.summary || "Cron completed. No issues found.")
+      if (!activeSessionId) {
+        setMessages((prev) => [...prev, { role: "agent", content: data.summary || "✅ Daily cron check complete.", createdAt: new Date().toISOString() }])
+      }
+    } catch {
+      setError("Cron check failed")
+    } finally {
+      setCronLoading(false)
+    }
+  }
 
   // Load sessions
   const loadSessions = useCallback(async () => {
@@ -322,10 +352,47 @@ export default function AgentPage() {
               {isStreaming ? "Generating response..." : activeSessionId ? "Ready" : "Start a conversation"}
             </p>
           </div>
-          <span className="ml-auto flex items-center gap-1.5 text-[10px] text-on-surface-variant/40 bg-outline-variant/20 px-2 py-1 rounded-full">
-            <Sparkles className="w-3 h-3" /> Gemini
-          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={runCron}
+              disabled={cronLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-variant/20 text-on-surface-variant/60 hover:bg-primary/10 hover:text-primary text-[10px] font-semibold transition-all disabled:opacity-40"
+            >
+              <Clock className="w-3.5 h-3.5" />
+              {cronLoading ? "Scanning..." : "Daily Cron"}
+            </button>
+            <span className="flex items-center gap-1.5 text-[10px] text-on-surface-variant/40 bg-outline-variant/20 px-2 py-1 rounded-full">
+              <Sparkles className="w-3 h-3" /> Gemini
+            </span>
+          </div>
         </div>
+
+        {/* Cron banner */}
+        {cronResult && (
+          <div className="shrink-0 mx-4 md:mx-6 mt-3 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-50 to-white border border-emerald-200/50">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-emerald-700 mb-1 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" /> Daily Cron Report
+                </p>
+                <div className="text-xs text-on-surface-variant/80 leading-relaxed whitespace-pre-wrap [&_strong]:text-on-surface [&_strong]:font-semibold">
+                  {cronResult.split("\n").map((line, i) => (
+                    <span key={i}>
+                      {line}
+                      {i < cronResult.split("\n").length - 1 && <br />}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={() => setCronResult(null)}
+                className="p-1 rounded-lg hover:bg-outline-variant/20 text-on-surface-variant/50 shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-4">
@@ -516,5 +583,17 @@ export default function AgentPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AgentPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    }>
+      <AgentContent />
+    </Suspense>
   )
 }

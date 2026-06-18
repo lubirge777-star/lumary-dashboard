@@ -25,6 +25,7 @@ import { Project, ProjectStatus } from "@/types"
 import { Plus, GripVertical, AlertCircle, Search, X } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
 import { ProjectCheckup } from "@/components/projects/project-checkup"
+import { RelatedLinks } from "@/components/related-links"
 
 const columns: { status: ProjectStatus; label: string; color: string }[] = [
   { status: "NEW_INQUIRY", label: "New Inquiry", color: "bg-gray-500" },
@@ -343,6 +344,16 @@ export function PipelinePage() {
           </DragOverlay>
         </DndContext>
       )}
+
+      <RelatedLinks
+        links={[
+          { label: "Clients", href: "/clients" },
+          { label: "Finance", href: "/finance" },
+          { label: "Messages", href: "/messages" },
+          { label: "Calendar", href: "/calendar" },
+          { label: "Analytics", href: "/analytics" },
+        ]}
+      />
     </div>
   )
 }
