@@ -260,3 +260,51 @@ export interface DailyDigest {
   totalExpenses: number
   topRecommendations: string[]
 }
+
+export interface AgentMessage {
+  id: string
+  role: "user" | "agent"
+  content: string
+  mediaUrl?: string
+  mediaType?: "image" | "document" | "audio" | "video"
+  command?: string
+  commandResult?: string
+  createdAt: string
+}
+
+export interface ProjectCheckup {
+  id: string
+  projectId: string
+  phase: string
+  question: string
+  answer?: string
+  status: "pending" | "answered" | "skipped"
+  createdAt: string
+  answeredAt?: string
+}
+
+export interface Integration {
+  id: string
+  name: string
+  type: "whatsapp" | "claude" | "chatwoot" | "typebot" | "webhook" | "custom"
+  status: "connected" | "disconnected" | "pending" | "error"
+  config: Record<string, string>
+  lastSyncAt?: string
+  errorMessage?: string
+  createdAt: string
+}
+
+export interface ClaudeConfig {
+  apiKey: string
+  model: string
+  maxTokens: number
+  temperature: number
+}
+
+export interface WhatsAppSyncStatus {
+  state: "open" | "close" | "connecting"
+  messagesToday: number
+  messagesTotal: number
+  lastMessageAt?: string
+  qr?: string
+}

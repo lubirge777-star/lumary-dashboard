@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { AlertCircle, Settings as SettingsIcon, MessageSquare, Webhook, Download, Save, Check, X, Users, Trash2, ShieldAlert, Smartphone, RefreshCw, LogOut, Loader2 } from "lucide-react"
+import { AlertCircle, Settings as SettingsIcon, MessageSquare, Webhook, Download, Save, Check, X, Users, Trash2, ShieldAlert, Smartphone, RefreshCw, LogOut, Loader2, Bot, Globe, Key, MessageCircle, BarChart3, ExternalLink, Plus, Copy } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useRole } from "@/components/use-role"
 import { RoleBadge } from "@/components/use-role"
 import { exportToCSV } from "@/lib/export"
 import { useToast } from "@/components/ui/toast"
+import { useWhatsAppSync, useIntegrations, useCreateIntegration } from "@/lib/api-hooks"
 import type { UserRole } from "@/types"
 
 const quickReplyPresets = [
@@ -83,11 +84,62 @@ export default function SettingsPage() {
 
   useEffect(() => { checkWA(); const i = setInterval(checkWA, 5000); return () => clearInterval(i) }, [])
 
+  const { data: integrationsList = [] } = useIntegrations()
+  const { data: waSync } = useWhatsAppSync()
+  const createIntegration = useCreateIntegration()
+
   const integrations = [
     { name: "WhatsApp (Baileys)", status: waState === "open" ? "connected" : waState === "connecting" ? "pending" : "disconnected", desc: waState === "open" ? "Connected and ready" : waState === "connecting" ? "Scan QR to connect" : "Disconnected" },
     { name: "Chatwoot", status: "disconnected", desc: "Customer support platform" },
     { name: "Typebot", status: "disconnected", desc: "Chatbot automation" },
+    ...integrationsList
+      .filter((i: any) => i.type !== "whatsapp" && i.type !== "chatwoot" && i.type !== "typebot")
+      .map((i: any) => ({ name: i.name, status: i.status, desc: i.type === "webhook" ? `Webhook: ${i.config?.url || ""}` : i.type === "claude" ? "Claude AI configured" : i.type === "custom" ? i.config?.description || "" : "" })),
   ]
+
+  const [claudeConfig, setClaudeConfig] = useState({
+    apiKey: "",
+    model: "claude-sonnet-4-20250514",
+    maxTokens: 4096,
+    temperature: 0.7,
+  })
+  const [showClaudeForm, setShowClaudeForm] = useState(false)
+  const [showWebhookForm, setShowWebhookForm] = useState(false)
+  const [webhookUrl, setWebhookUrl] = useState("")
+  const [webhookEvents, setWebhookEvents] = useState<string[]>(["message_received", "payment_received"])
+  const [claudeSaved, setClaudeSaved] = useState(false)
+
+  const handleSaveClaude = () => {
+    createIntegration.mutate({
+      name: "Claude AI",
+      type: "claude",
+      config: claudeConfig,
+    }, {
+      onSuccess: () => {
+        setShowClaudeForm(false)
+        setClaudeSaved(true)
+        setTimeout(() => setClaudeSaved(false), 3000)
+      },
+    })
+  }
+
+  const handleAddWebhook = () => {
+    if (!webhookUrl.trim()) return
+    createIntegration.mutate({
+      name: `Webhook ${integrationsList.length + 1}`,
+      type: "webhook",
+      config: { url: webhookUrl.trim(), events: webhookEvents },
+    }, {
+      onSuccess: () => {
+        setShowWebhookForm(false)
+        setWebhookUrl("")
+      },
+    })
+  }
+
+  const handleCopyWebhookUrl = () => {
+    navigator.clipboard.writeText(`${window.location.origin}/api/v1/webhooks/evolution`)
+  }
 
   const tabs = [
     { key: "pricing" as Tab, label: "Pricing", icon: SettingsIcon },
@@ -269,46 +321,231 @@ export default function SettingsPage() {
       )}
 
       {activeTab === "integrations" && (
-        <div className="rounded-xl bg-white dark:bg-surface-container-high border border-outline-variant/30 dark:border-white/5 p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-on-surface tracking-wide">Connected Services</h3>
-          <div className="space-y-3">
-            {integrations.map((int: any) => (
-              <div key={int.name} className="group flex items-center justify-between p-4 rounded-xl bg-white/40 dark:bg-surface-container/40 border border-outline-variant/20 dark:border-white/5 hover:border-primary/10 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                    int.status === "connected" ? "bg-emerald-100" : int.status === "pending" ? "bg-amber-100" : "bg-outline-variant/30"
+        <div className="space-y-4">
+          {/* Connected Services */}
+          <div className="rounded-xl bg-white border border-outline-variant/30 p-6 space-y-4">
+            <h3 className="text-sm font-semibold text-on-surface tracking-wide">Connected Services</h3>
+            <div className="space-y-3">
+              {integrations.map((int: any) => (
+                <div key={int.name} className="group flex items-center justify-between p-4 rounded-xl bg-white/40 border border-outline-variant/20 hover:border-primary/10 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                      int.status === "connected" ? "bg-emerald-100" : int.status === "pending" ? "bg-amber-100" : "bg-outline-variant/30"
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full ${
+                        int.status === "connected" ? "bg-emerald-600" : int.status === "pending" ? "bg-amber-500" : "bg-on-surface-variant/60"
+                      }`} />
+                    </div>
+                    <div>
+                      <p className="text-sm text-on-surface font-medium">{int.name}</p>
+                      <p className="text-xs text-on-surface-variant/80 mt-0.5">{int.desc}</p>
+                    </div>
+                  </div>
+                  <span className={`text-xs px-3 py-1.5 rounded-lg font-medium ${
+                    int.status === "connected"
+                      ? "bg-emerald-100 text-emerald-600"
+                      : int.status === "pending"
+                        ? "bg-amber-100 text-amber-600"
+                        : "bg-outline-variant/30 text-on-surface-variant/80"
                   }`}>
-                    <div className={`w-2 h-2 rounded-full ${
-                      int.status === "connected" ? "bg-emerald-600" : int.status === "pending" ? "bg-amber-500" : "bg-on-surface-variant/60"
-                    }`} />
-                  </div>
-                  <div>
-                    <p className="text-sm text-on-surface font-medium">{int.name}</p>
-                    <p className="text-xs text-on-surface-variant/80 mt-0.5">{int.desc}</p>
-                  </div>
+                    {int.status === "connected" ? (
+                      <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Connected</span>
+                    ) : int.status === "pending" ? (
+                      <span className="flex items-center gap-1">Pending</span>
+                    ) : (
+                      <span className="flex items-center gap-1"><X className="w-3 h-3" /> Disconnected</span>
+                    )}
+                  </span>
                 </div>
-                <span className={`text-xs px-3 py-1.5 rounded-lg font-medium ${
-                  int.status === "connected"
-                    ? "bg-emerald-100 text-emerald-600"
-                    : int.status === "pending"
-                      ? "bg-amber-100 text-amber-600"
-                      : "bg-outline-variant/30 text-on-surface-variant/80"
-                }`}>
-                  {int.status === "connected" ? (
-                    <span className="flex items-center gap-1"><Check className="w-3 h-3" /> Connected</span>
-                  ) : int.status === "pending" ? (
-                    <span className="flex items-center gap-1">Pending</span>
-                  ) : (
-                    <span className="flex items-center gap-1"><X className="w-3 h-3" /> Disconnected</span>
-                  )}
-                </span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          <div className="mt-6 p-5 rounded-xl bg-gradient-to-r from-amber-50 to-white dark:from-amber-950/30 dark:to-surface-container-high border border-amber-200/50 dark:border-amber-700/30">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-sm font-semibold text-on-surface">WhatsApp Connection</h4>
+          {/* Claude AI Config */}
+          <div className="rounded-xl bg-white border border-outline-variant/30 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-on-surface tracking-wide">Claude AI Review</h3>
+              {claudeSaved && (
+                <span className="flex items-center gap-1 text-xs text-emerald-600 animate-fadeIn">
+                  <Check className="w-3.5 h-3.5" /> Config saved
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-on-surface-variant/70 leading-relaxed">
+              Configure Claude AI to review timeline check-ups and get expert analysis on your business operations.
+              Messages from the Agent and check-up questions can be copied directly to Claude for review.
+            </p>
+            {showClaudeForm ? (
+              <div className="space-y-3 p-4 rounded-xl bg-surface-variant/10 border border-outline-variant/20">
+                <div>
+                  <label className="text-xs text-on-surface-variant/80 font-medium mb-1 block">API Key</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={claudeConfig.apiKey}
+                      onChange={(e) => setClaudeConfig({ ...claudeConfig, apiKey: e.target.value })}
+                      placeholder="sk-ant-..."
+                      className="flex-1 bg-white border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary/30"
+                    />
+                    <button
+                      onClick={handleSaveClaude}
+                      disabled={!claudeConfig.apiKey.trim()}
+                      className="flex items-center gap-1 px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:shadow-md transition-all disabled:opacity-40"
+                    >
+                      <Check className="w-3.5 h-3.5" /> Save
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs text-on-surface-variant/80 font-medium mb-1 block">Model</label>
+                    <select
+                      value={claudeConfig.model}
+                      onChange={(e) => setClaudeConfig({ ...claudeConfig, model: e.target.value })}
+                      className="w-full bg-white border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface focus:outline-none focus:border-primary/30"
+                    >
+                      <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                      <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+                      <option value="claude-opus-4-20250514">Claude Opus 4</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-on-surface-variant/80 font-medium mb-1 block">Max Tokens</label>
+                    <input
+                      type="number"
+                      value={claudeConfig.maxTokens}
+                      onChange={(e) => setClaudeConfig({ ...claudeConfig, maxTokens: Number(e.target.value) })}
+                      className="w-full bg-white border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface focus:outline-none focus:border-primary/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-on-surface-variant/80 font-medium mb-1 block">Temperature</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="1"
+                      value={claudeConfig.temperature}
+                      onChange={(e) => setClaudeConfig({ ...claudeConfig, temperature: Number(e.target.value) })}
+                      className="w-full bg-white border border-outline-variant rounded-lg px-3 py-2 text-xs text-on-surface focus:outline-none focus:border-primary/30"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowClaudeForm(false)}
+                  className="text-xs text-on-surface-variant/60 hover:text-on-surface transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowClaudeForm(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl text-xs font-semibold hover:bg-primary/20 transition-all"
+              >
+                <Bot className="w-3.5 h-3.5" /> Configure Claude AI
+              </button>
+            )}
+          </div>
+
+          {/* Webhook Management */}
+          <div className="rounded-xl bg-white border border-outline-variant/30 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-on-surface tracking-wide">Webhooks</h3>
+              <button
+                onClick={() => setShowWebhookForm(!showWebhookForm)}
+                className="flex items-center gap-1.5 text-xs text-primary font-semibold hover:text-primary/80 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Webhook
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-surface-variant/10 border border-outline-variant/20">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-medium text-on-surface">Evolution API</span>
+                </div>
+                <button
+                  onClick={handleCopyWebhookUrl}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-outline-variant/20 text-on-surface-variant text-[10px] font-semibold hover:bg-outline-variant/30 transition-all"
+                >
+                  <Copy className="w-3 h-3" /> Copy URL
+                </button>
+              </div>
+
+              {integrationsList.filter((i: any) => i.type === "webhook").map((wh: any) => (
+                <div key={wh.id} className="flex items-center justify-between p-3 rounded-xl bg-white border border-outline-variant/20">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Webhook className="w-4 h-4 text-on-surface-variant/60 shrink-0" />
+                    <span className="text-xs text-on-surface truncate">{wh.config?.url || wh.name}</span>
+                  </div>
+                  <span className={`text-[10px] px-2 py-1 rounded-full font-medium ${
+                    wh.status === "connected" ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-500"
+                  }`}>
+                    {wh.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {showWebhookForm && (
+              <div className="space-y-3 p-4 rounded-xl bg-surface-variant/10 border border-outline-variant/20">
+                <div>
+                  <label className="text-xs text-on-surface-variant/80 font-medium mb-1 block">Webhook URL</label>
+                  <input
+                    type="url"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    placeholder="https://your-server.com/webhook"
+                    className="w-full bg-white border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none focus:border-primary/30"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-on-surface-variant/80 font-medium mb-1 block">Events</label>
+                  <div className="flex flex-wrap gap-2">
+                    {["message_received", "message_sent", "payment_received", "project_created", "project_status_changed", "client_created"].map((ev) => (
+                      <button
+                        key={ev}
+                        onClick={() => {
+                          setWebhookEvents((prev) =>
+                            prev.includes(ev) ? prev.filter((e) => e !== ev) : [...prev, ev]
+                          )
+                        }}
+                        className={`text-[10px] px-2.5 py-1.5 rounded-lg border font-medium transition-all ${
+                          webhookEvents.includes(ev)
+                            ? "bg-primary/10 border-primary/30 text-primary"
+                            : "bg-white border-outline-variant/20 text-on-surface-variant/70 hover:border-primary/20"
+                        }`}
+                      >
+                        {ev.replace(/_/g, " ")}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleAddWebhook}
+                    disabled={!webhookUrl.trim()}
+                    className="flex items-center gap-1 px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold hover:shadow-md transition-all disabled:opacity-40"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add
+                  </button>
+                  <button
+                    onClick={() => setShowWebhookForm(false)}
+                    className="px-4 py-2 bg-outline-variant/20 text-on-surface-variant rounded-lg text-xs font-semibold"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* WhatsApp Connection */}
+          <div className="rounded-xl bg-gradient-to-r from-amber-50 to-white border border-amber-200/50 p-6 space-y-4">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-sm font-semibold text-on-surface">WhatsApp Connection</h3>
               <div className="flex items-center gap-2">
                 {waState === "open" ? (
                   <span className="flex items-center gap-1.5 text-xs text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg font-semibold">
@@ -326,10 +563,32 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* Sync Stats */}
+            {waState === "open" && waSync && (
+              <div className="grid grid-cols-3 gap-3 mt-2">
+                <div className="p-3 rounded-xl bg-white/60 border border-outline-variant/20 text-center">
+                  <p className="text-lg font-bold text-emerald-600">{waSync.messagesToday || 0}</p>
+                  <p className="text-[10px] text-on-surface-variant/70">Today</p>
+                </div>
+                <div className="p-3 rounded-xl bg-white/60 border border-outline-variant/20 text-center">
+                  <p className="text-lg font-bold text-primary">{waSync.messagesTotal || 0}</p>
+                  <p className="text-[10px] text-on-surface-variant/70">Total Messages</p>
+                </div>
+                <div className="p-3 rounded-xl bg-white/60 border border-outline-variant/20 text-center">
+                  <p className="text-lg font-bold text-blue-600">
+                    {waSync.lastMessageAt
+                      ? new Date(waSync.lastMessageAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : "--:--"}
+                  </p>
+                  <p className="text-[10px] text-on-surface-variant/70">Last Activity</p>
+                </div>
+              </div>
+            )}
+
             {waState === "open" ? (
               <div className="space-y-3">
                 <p className="text-xs text-on-surface-variant/70 leading-relaxed">
-                  WhatsApp is connected. Messages are flowing through the dashboard.
+                  WhatsApp is connected and syncing messages in real-time.
                 </p>
                 <button
                   onClick={async () => { await fetch("/api/v1/whatsapp/disconnect", { method: "POST" }); checkWA() }}
@@ -342,7 +601,7 @@ export default function SettingsPage() {
               <div className="space-y-3">
                 <p className="text-xs text-on-surface-variant/70 leading-relaxed">
                   Scan this QR code with your WhatsApp app to connect <strong>+{process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "255651360763"}</strong>:
-                  <br />Open WhatsApp &rarr; Settings &rarr; Linked Devices &rarr; Link a Device
+                  <br />Open WhatsApp → Settings → Linked Devices → Link a Device
                 </p>
                 <div className="flex justify-center">
                   <img src={waQR} alt="WhatsApp QR Code" className="w-48 h-48 rounded-xl border border-outline-variant/20" />

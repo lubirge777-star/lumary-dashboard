@@ -14,7 +14,7 @@ import {
   Palette, TrendingUp, Flame, Brain, Globe,
   Trophy, Film, Heart, Building2,
   CheckSquare, ListChecks, Eye, Briefcase, Cloud,
-  Sun,
+  Sun, Bot,
 } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import clsx from "clsx"
@@ -34,6 +34,7 @@ const nav = {
     { label: "Pipeline", href: "/projects", icon: Kanban },
     { label: "Messages", href: "/messages", icon: Send },
     { label: "Calendar", href: "/calendar", icon: Calendar },
+    { label: "Agent", href: "/agent", icon: Bot },
     { label: "Retainers", href: "/retainers", icon: Repeat },
     { label: "Operations", href: "/operations", icon: ClipboardList },
   ],

@@ -22,8 +22,9 @@ import { Button } from "@/components/ui/button"
 import { Badge, statusBadge } from "@/components/ui/badge"
 import { formatTSh, formatRelativeDate } from "@/lib/utils"
 import { Project, ProjectStatus } from "@/types"
-import { Plus, GripVertical, AlertCircle, Search, X } from "lucide-react"
+import { Plus, GripVertical, AlertCircle, Search, X, ChevronDown, ChevronUp, ExternalLink, MessageCircle, Calendar } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
+import { ProjectCheckup } from "@/components/projects/project-checkup"
 
 const columns: { status: ProjectStatus; label: string; color: string }[] = [
   { status: "NEW_INQUIRY", label: "New Inquiry", color: "bg-gray-500" },
@@ -36,7 +37,7 @@ const columns: { status: ProjectStatus; label: string; color: string }[] = [
   { status: "RETAINER_PITCH", label: "Retainer Pitch", color: "bg-yellow-500" },
 ]
 
-function KanbanCard({ project }: { project: Project }) {
+function KanbanCard({ project, onSelect, isSelected }: { project: Project; onSelect?: (id: string) => void; isSelected?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: project.id,
   })
@@ -51,7 +52,12 @@ function KanbanCard({ project }: { project: Project }) {
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-xl border border-outline-variant/40 dark:border-white/5 bg-white dark:bg-surface-container-high p-3.5 cursor-grab active:cursor-grabbing hover:border-primary/20 hover:shadow-md hover:shadow-black/20 transition-all"
+      onClick={() => onSelect?.(project.id)}
+      className={`rounded-xl border ${
+        isSelected
+          ? "border-primary/40 bg-primary/5 shadow-md shadow-primary/10"
+          : "border-outline-variant/40 hover:border-primary/20 hover:shadow-md hover:shadow-black/20"
+      } bg-white p-3.5 cursor-pointer transition-all`}
     >
       <div className="flex items-start gap-2">
         <button className="mt-0.5 cursor-grab text-on-surface-variant/80 hover:text-on-surface-variant transition-colors" {...attributes} {...listeners}>
@@ -90,9 +96,13 @@ function KanbanCard({ project }: { project: Project }) {
 function Column({
   column,
   projects,
+  selectedProjectId,
+  onSelectProject,
 }: {
   column: (typeof columns)[0]
   projects: Project[]
+  selectedProjectId?: string | null
+  onSelectProject?: (id: string) => void
 }) {
   const ids = projects.map((p) => p.id)
 
@@ -110,7 +120,7 @@ function Column({
       <div className="flex-1 p-3 space-y-2 overflow-y-auto max-h-[calc(100vh-280px)]">
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
           {projects.map((p) => (
-            <KanbanCard key={p.id} project={p} />
+            <KanbanCard key={p.id} project={p} onSelect={onSelectProject} isSelected={p.id === selectedProjectId} />
           ))}
         </SortableContext>
         {projects.length === 0 && (
@@ -155,7 +165,10 @@ export function PipelinePage() {
     return map
   }, [projects])
 
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [showDetail, setShowDetail] = useState(false)
   const activeProject = activeId ? projects.find((p) => p.id === activeId) : null
+  const selectedProject = selectedProjectId ? projects.find((p) => p.id === selectedProjectId) : null
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string)
@@ -259,10 +272,56 @@ export function PipelinePage() {
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin">
             {columns.map((col) => (
               <SortableContext key={col.status} items={[col.status]}>
-                <Column column={col} projects={grouped.get(col.status) || []} />
+                <Column column={col} projects={grouped.get(col.status) || []} selectedProjectId={selectedProjectId} onSelectProject={(id) => { setSelectedProjectId(id); setShowDetail(true) }} />
               </SortableContext>
             ))}
           </div>
+
+          {/* Project Detail Panel */}
+          {selectedProject && showDetail && (
+            <div className="mt-4 p-5 rounded-xl bg-white border border-primary/20 shadow-lg animate-fadeInUp">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-lg font-heading font-bold text-on-surface">{selectedProject.clientName}</h3>
+                    <span className={statusBadge(selectedProject.status as any)}>
+                      {selectedProject.status.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  <p className="text-sm text-on-surface-variant/70 mt-1">{selectedProject.serviceType}</p>
+                </div>
+                <button
+                  onClick={() => { setShowDetail(false); setSelectedProjectId(null) }}
+                  className="p-1.5 rounded-lg hover:bg-outline-variant/20 text-on-surface-variant/60"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-surface-variant/10 border border-outline-variant/20">
+                  <p className="text-[10px] text-on-surface-variant/60 uppercase tracking-wider font-semibold">Amount</p>
+                  <p className="text-sm font-bold text-primary mt-1">{formatTSh(selectedProject.quotedAmount)}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-surface-variant/10 border border-outline-variant/20">
+                  <p className="text-[10px] text-on-surface-variant/60 uppercase tracking-wider font-semibold">Days in Stage</p>
+                  <p className="text-sm font-bold text-on-surface mt-1">{selectedProject.daysInStage}d</p>
+                </div>
+                <div className="p-3 rounded-xl bg-surface-variant/10 border border-outline-variant/20">
+                  <p className="text-[10px] text-on-surface-variant/60 uppercase tracking-wider font-semibold">Priority</p>
+                  <p className={`text-sm font-bold mt-1 ${selectedProject.priority === "rush" ? "text-error" : "text-on-surface"}`}>
+                    {selectedProject.priority || "Normal"}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-surface-variant/10 border border-outline-variant/20">
+                  <p className="text-[10px] text-on-surface-variant/60 uppercase tracking-wider font-semibold">Agent</p>
+                  <p className="text-sm font-bold text-on-surface mt-1">{selectedProject.assignedAgentName || "Unassigned"}</p>
+                </div>
+              </div>
+
+              <ProjectCheckup projectId={selectedProject.id} projectPhase={selectedProject.status} />
+            </div>
+          )}
 
           <DragOverlay>
             {activeProject && (

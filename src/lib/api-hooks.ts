@@ -282,3 +282,88 @@ export function useDismissAISuggestion() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["ai-suggestions"] }),
   })
 }
+
+export function useAgentChat() {
+  return useMutation({
+    mutationFn: ({ message, history }: { message: string; history: any[] }) =>
+      fetchJson("/api/v1/agent/chat", {
+        method: "POST",
+        body: JSON.stringify({ message, history }),
+        headers: { "Content-Type": "application/json" },
+      }),
+  })
+}
+
+export function useUploadFile() {
+  return useMutation({
+    mutationFn: (file: File) => {
+      const formData = new FormData()
+      formData.append("file", file)
+      return fetchJson("/api/v1/agent/upload", { method: "POST", body: formData })
+    },
+  })
+}
+
+export function useProjectCheckups(projectId?: string) {
+  return useQuery({
+    queryKey: ["checkups", projectId],
+    queryFn: () => {
+      const qs = projectId ? `?projectId=${projectId}` : ""
+      return fetchJson(`/api/v1/projects/checkup${qs}`)
+    },
+    enabled: projectId !== undefined,
+  })
+}
+
+export function useCreateCheckup() {
+  const qc = useQueryClient()
+  const { toast } = useToast()
+  return useMutation({
+    mutationFn: (data: { projectId: string; phase: string; question: string }) =>
+      fetchJson("/api/v1/projects/checkup", { method: "POST", body: JSON.stringify(data), headers: { "Content-Type": "application/json" } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["checkups"] })
+      toast("success", "Checkup Created", "Timeline question added")
+    },
+    onError: (err: Error) => toast("error", "Failed", err.message),
+  })
+}
+
+export function useAnswerCheckup() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, answer }: { id: string; answer: string }) =>
+      fetchJson("/api/v1/projects/checkup", { method: "PATCH", body: JSON.stringify({ id, answer, status: "answered" }), headers: { "Content-Type": "application/json" } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["checkups"] })
+    },
+  })
+}
+
+export function useIntegrations() {
+  return useQuery({
+    queryKey: ["integrations"],
+    queryFn: () => fetchJson("/api/v1/integrations"),
+  })
+}
+
+export function useCreateIntegration() {
+  const qc = useQueryClient()
+  const { toast } = useToast()
+  return useMutation({
+    mutationFn: (data: any) =>
+      fetchJson("/api/v1/integrations", { method: "POST", body: JSON.stringify(data), headers: { "Content-Type": "application/json" } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["integrations"] })
+      toast("success", "Integration Added", "New integration configured")
+    },
+    onError: (err: Error) => toast("error", "Failed", err.message),
+  })
+}
+
+export function useWhatsAppSync() {
+  return useQuery({
+    queryKey: ["whatsapp-sync"],
+    queryFn: () => fetchJson("/api/v1/whatsapp/sync"),
+  })
+}

@@ -814,3 +814,32 @@ model AgentNudge {
   @@index([acknowledged])
   @@index([createdAt])
 }
+
+model ProjectCheckup {
+  id        String    @id @default(cuid())
+  projectId String
+  phase     String    @default("general")
+  question  String
+  answer    String?
+  status    String    @default("pending") // pending | answered | skipped
+  createdAt DateTime  @default(now())
+  answeredAt DateTime?
+  updatedAt DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+}
+
+model WhatsAppSync {
+  id              String    @id @default(cuid())
+  state           String    @default("disconnected") // open | close | connecting | disconnected
+  messagesToday   Int       @default(0)
+  messagesTotal   Int       @default(0)
+  lastMessageAt   DateTime?
+  qr              String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([state])
+  @@index([createdAt])
+}
