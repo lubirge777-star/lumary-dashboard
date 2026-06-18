@@ -156,3 +156,68 @@ Respond with valid JSON only: ["action 1", "action 2", ...]`,
 export async function isAvailable(): Promise<boolean> {
   return !!process.env.GEMINI_API_KEY
 }
+
+export type ChatRole = "user" | "model"
+export interface ChatTurn {
+  role: ChatRole
+  parts: { text: string }[]
+}
+
+export async function chatSendMessage(
+  systemPrompt: string,
+  history: ChatTurn[],
+  message: string,
+): Promise<string | null> {
+  const client = getClient()
+  if (!client) return null
+
+  const models = getModelNames()
+  for (const modelName of models) {
+    try {
+      const model = client.getGenerativeModel({ model: modelName })
+      const chat = model.startChat({
+        systemInstruction: systemPrompt,
+        history,
+      })
+      const result = await chat.sendMessage(message)
+      return result.response.text()
+    } catch (e) {
+      console.warn(`Gemini model "${modelName}" failed:`, e)
+    }
+  }
+  return null
+}
+
+export async function chatSendMessageStream(
+  systemPrompt: string,
+  history: ChatTurn[],
+  message: string,
+  onChunk: (chunk: string) => void,
+): Promise<string | null> {
+  const client = getClient()
+  if (!client) return null
+
+  const models = getModelNames()
+  for (const modelName of models) {
+    try {
+      const model = client.getGenerativeModel({ model: modelName })
+      const chat = model.startChat({
+        systemInstruction: systemPrompt,
+        history,
+      })
+      const result = await chat.sendMessageStream(message)
+      let full = ""
+      for await (const chunk of result.stream) {
+        const text = chunk.text()
+        if (text) {
+          full += text
+          onChunk(text)
+        }
+      }
+      return full
+    } catch (e) {
+      console.warn(`Gemini model "${modelName}" failed:`, e)
+    }
+  }
+  return null
+}

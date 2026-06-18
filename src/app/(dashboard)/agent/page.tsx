@@ -1,48 +1,94 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import {
-  Bot, Send, Paperclip, X, Image, FileText, Mic, Video,
-  CheckCircle, AlertCircle, Loader2, Sparkles, Command,
+  Bot, Send, Plus, MessageSquare, Trash2, ChevronLeft, ChevronRight,
+  Sparkles, Loader2, Paperclip, X, FileText, Terminal,
 } from "lucide-react"
-import { useAgentChat, useUploadFile } from "@/lib/api-hooks"
+import Markdown from "@/components/agent/markdown"
 import clsx from "clsx"
-import type { AgentMessage } from "@/types"
 
-const quickActions = [
-  { label: "New Client", prompt: "Create a new client named..." },
-  { label: "Project Status", prompt: "Show me all projects in revision stage" },
-  { label: "Weekly Summary", prompt: "Give me a weekly business summary" },
-  { label: "Pending Payments", prompt: "Show pending payments and overdue invoices" },
-  { label: "Send Message", prompt: "Send a WhatsApp message to..." },
-]
+interface ChatMessage {
+  id?: string
+  role: "user" | "agent"
+  content: string
+  createdAt?: string
+}
+
+interface Session {
+  id: string
+  title: string
+  updatedAt: string
+  _count: { messages: number }
+}
 
 export default function AgentPage() {
   useEffect(() => { document.title = "Agent — LUMARY Studio" }, [])
 
-  const [messages, setMessages] = useState<AgentMessage[]>([
-    {
-      id: "welcome",
-      role: "agent",
-      content: "Hello! I'm your LUMARY Agent. I can help you manage clients, projects, payments, and more. Try asking me to create a client, show project status, or send a message.\n\nTo copy a response for Claude AI review, click the copy button below any message.",
-      createdAt: new Date().toISOString(),
-    },
-  ])
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [streamingContent, setStreamingContent] = useState("")
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
-  const chatMutation = useAgentChat()
-  const uploadMutation = useUploadFile()
+  // Load sessions
+  const loadSessions = useCallback(async () => {
+    try {
+      const res = await fetch("/api/v1/agent/sessions")
+      setSessions(await res.json())
+    } catch {}
+  }, [])
+
+  useEffect(() => { loadSessions() }, [loadSessions])
+
+  // Load messages for active session
+  useEffect(() => {
+    if (!activeSessionId) {
+      setMessages([])
+      return
+    }
+    fetch(`/api/v1/agent/sessions/${activeSessionId}`)
+      .then((r) => r.json())
+      .then(setMessages)
+  }, [activeSessionId])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+  }, [messages, streamingContent])
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const createSession = async () => {
+    const res = await fetch("/api/v1/agent/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    })
+    const session = await res.json()
+    setSessions((prev) => [session, ...prev])
+    setActiveSessionId(session.id)
+    setMessages([])
+    setError(null)
+  }
+
+  const deleteSession = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    await fetch(`/api/v1/agent/sessions?id=${id}`, { method: "DELETE" })
+    setSessions((prev) => prev.filter((s) => s.id !== id))
+    if (activeSessionId === id) {
+      setActiveSessionId(null)
+      setMessages([])
+    }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setSelectedFile(file)
@@ -50,9 +96,7 @@ export default function AgentPage() {
       const reader = new FileReader()
       reader.onload = (ev) => setPreview(ev.target?.result as string)
       reader.readAsDataURL(file)
-    } else {
-      setPreview(null)
-    }
+    } else setPreview(null)
   }
 
   const removeFile = () => {
@@ -61,78 +105,132 @@ export default function AgentPage() {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
-  const copyToClaude = (content: string) => {
-    navigator.clipboard.writeText(content)
-  }
+  const handleSend = async () => {
+    const text = input.trim()
+    if (!text && !selectedFile) return
 
-  const handleSend = async (text?: string) => {
-    const content = text || input
-    if (!content.trim() && !selectedFile) return
-
-    let mediaUrl: string | undefined
-    let mediaType: "image" | "document" | undefined
-
+    let mediaContent = text
     if (selectedFile) {
-      setIsProcessing(true)
-      try {
-        const result = await uploadMutation.mutateAsync(selectedFile)
-        mediaUrl = result.url
-        mediaType = selectedFile.type.startsWith("image/") ? "image" : "document"
-      } catch {
-        setSelectedFile(null)
-        setPreview(null)
-        setIsProcessing(false)
-        return
-      }
-      setIsProcessing(false)
+      const formData = new FormData()
+      formData.append("file", selectedFile)
+      const uploadRes = await fetch("/api/v1/agent/upload", { method: "POST", body: formData })
+      const uploadData = await uploadRes.json()
+      mediaContent = text || `[${selectedFile.type.startsWith("image/") ? "Image" : "File"}: ${uploadData.url}]`
+      removeFile()
     }
 
-    const userMsg: AgentMessage = {
-      id: Date.now().toString(),
-      role: "user",
-      content: content.trim(),
-      mediaUrl,
-      mediaType,
-      createdAt: new Date().toISOString(),
+    // Create session if first message
+    let sessionId = activeSessionId
+    if (!sessionId) {
+      const res = await fetch("/api/v1/agent/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      })
+      const session = await res.json()
+      sessionId = session.id
+      setActiveSessionId(session.id)
+      setSessions((prev) => [session, ...prev])
     }
 
+    const userMsg: ChatMessage = { role: "user", content: mediaContent, createdAt: new Date().toISOString() }
     setMessages((prev) => [...prev, userMsg])
     setInput("")
-    removeFile()
-    setIsProcessing(true)
+    setError(null)
+    setIsStreaming(true)
+    setStreamingContent("")
+
+    const history = messages.map((m) => ({ role: m.role, content: m.content }))
+
+    abortRef.current = new AbortController()
 
     try {
-      const history = messages.map((m) => ({
-        id: m.id,
-        role: m.role,
-        content: m.content,
-        createdAt: m.createdAt,
-      }))
+      const res = await fetch("/api/v1/agent/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, message: mediaContent, history }),
+        signal: abortRef.current.signal,
+      })
 
-      const res = await chatMutation.mutateAsync({ message: content, history })
-
-      const agentMsg: AgentMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "agent",
-        content: res.reply || "Samahani, siwezi kuchakata ombi lako sasa.",
-        createdAt: res.timestamp || new Date().toISOString(),
+      if (!res.ok) {
+        setError("Failed to reach AI agent. Check your connection.")
+        setIsStreaming(false)
+        return
       }
 
-      setMessages((prev) => [...prev, agentMsg])
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          role: "agent",
-          content: "Sorry, I encountered an error. Please try again.",
-          createdAt: new Date().toISOString(),
-        },
-      ])
-    } finally {
-      setIsProcessing(false)
+      const reader = res.body?.getReader()
+      if (!reader) throw new Error("No reader")
+
+      const decoder = new TextDecoder()
+      let buffer = ""
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split("\n")
+        buffer = lines.pop() || ""
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue
+          try {
+            const data = JSON.parse(line.slice(6))
+
+            if (data.event === "chunk" && data.data?.text) {
+              setStreamingContent((prev) => prev + data.data.text)
+            } else if (data.event === "done" && data.data?.full) {
+              // Use the saved version from server
+              setMessages((prev) => [...prev, { role: "agent", content: data.data.full, createdAt: new Date().toISOString() }])
+              setStreamingContent("")
+              setIsStreaming(false)
+              // Reload sessions to get updated title
+              loadSessions()
+            } else if (data.event === "error") {
+              setError(data.data?.message || "Agent error")
+              setIsStreaming(false)
+              setStreamingContent("")
+            } else if (data.data?.text) {
+              // Direct SSE format fallback
+              setStreamingContent((prev) => prev + data.data.text)
+            } else if (data.data?.full) {
+              setMessages((prev) => [...prev, { role: "agent", content: data.data.full, createdAt: new Date().toISOString() }])
+              setStreamingContent("")
+              setIsStreaming(false)
+              loadSessions()
+            }
+          } catch {}
+        }
+      }
+
+      // If streaming ended but we still have content
+      if (streamingContent) {
+        setMessages((prev) => [...prev, { role: "agent", content: streamingContent, createdAt: new Date().toISOString() }])
+        setStreamingContent("")
+      }
+      setIsStreaming(false)
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
+        setError("Connection lost. Please try again.")
+      }
+      setIsStreaming(false)
     }
   }
+
+  // Check if the streaming content should complete
+  // This runs after the stream finishes
+  useEffect(() => {
+    if (!isStreaming && streamingContent && !error) {
+      setMessages((prev) => {
+        // Avoid duplicate
+        if (prev.length > 0 && prev[prev.length - 1].role === "agent" && prev[prev.length - 1].content === streamingContent) {
+          return prev
+        }
+        return [...prev, { role: "agent", content: streamingContent, createdAt: new Date().toISOString() }]
+      })
+      setStreamingContent("")
+    }
+  }, [isStreaming])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -141,195 +239,280 @@ export default function AgentPage() {
     }
   }
 
-  return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] -mx-3 md:-mx-container-padding -mt-4 md:-mt-gutter">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-outline-variant/20 bg-white/60 backdrop-blur-md shrink-0">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/20">
-          <Bot className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <h1 className="text-lg font-heading font-bold text-on-surface">Agent</h1>
-          <p className="text-xs text-on-surface-variant/70">AI-powered dashboard assistant</p>
-        </div>
-        <span className="ml-auto flex items-center gap-1.5 text-[10px] text-on-surface-variant/50 bg-outline-variant/20 px-2.5 py-1 rounded-full">
-          <Sparkles className="w-3 h-3" /> Powered by Gemini
-        </span>
-      </div>
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr)
+    const now = new Date()
+    const diff = now.getTime() - d.getTime()
+    if (diff < 86400000) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    return d.toLocaleDateString([], { month: "short", day: "numeric" })
+  }
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-4">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={clsx(
-              "flex gap-3 max-w-3xl",
-              msg.role === "user" ? "ml-auto flex-row-reverse" : ""
-            )}
+  return (
+    <div className="flex h-[calc(100vh-8rem)] -mx-3 md:-mx-container-padding -mt-4 md:-mt-gutter overflow-hidden bg-surface-dim/10">
+      {/* Session Sidebar */}
+      <div
+        className={clsx(
+          "flex-shrink-0 border-r border-outline-variant/20 bg-white flex flex-col transition-all duration-300",
+          sidebarOpen ? "w-72" : "w-0 overflow-hidden",
+        )}
+      >
+        <div className="p-4 border-b border-outline-variant/10">
+          <button
+            onClick={createSession}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-secondary text-white text-sm font-semibold hover:shadow-lg hover:shadow-primary/20 active:scale-[0.98] transition-all"
           >
-            {/* Avatar */}
-            <div
+            <Plus className="w-4 h-4" />
+            New Chat
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {sessions.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setActiveSessionId(s.id)}
               className={clsx(
-                "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-1",
-                msg.role === "agent"
-                  ? "bg-gradient-to-br from-primary to-secondary text-white shadow-md"
-                  : "bg-surface-variant/50 text-on-surface-variant"
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all group",
+                activeSessionId === s.id
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "text-on-surface-variant/80 hover:bg-surface-variant/20 hover:text-on-surface",
               )}
             >
-              {msg.role === "agent" ? (
-                <Bot className="w-4 h-4" />
-              ) : (
-                <div className="w-4 h-4 rounded-full bg-on-surface-variant/60" />
-              )}
-            </div>
+              <MessageSquare className="w-4 h-4 shrink-0 opacity-60" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs truncate">{s.title}</p>
+                <p className="text-[10px] text-on-surface-variant/50 mt-0.5">
+                  {s._count.messages} messages · {formatDate(s.updatedAt)}
+                </p>
+              </div>
+              <button
+                onClick={(e) => deleteSession(s.id, e)}
+                className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-error/10 text-on-surface-variant/50 hover:text-error transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </button>
+          ))}
 
-            {/* Bubble */}
-            <div className={clsx("space-y-2 max-w-[85%]", msg.role === "user" ? "items-end" : "")}>
-              {msg.mediaUrl && (
-                <div className="rounded-xl overflow-hidden border border-outline-variant/20 max-w-sm">
-                  {msg.mediaType === "image" ? (
-                    <img
-                      src={msg.mediaUrl}
-                      alt="Uploaded media"
-                      className="w-full h-auto max-h-64 object-cover"
-                    />
-                  ) : (
-                    <div className="flex items-center gap-2 p-3 bg-surface-variant/20">
-                      <FileText className="w-5 h-5 text-primary" />
-                      <span className="text-xs text-on-surface-variant truncate">
-                        {msg.mediaUrl.split("/").pop()}
-                      </span>
-                    </div>
-                  )}
-                </div>
+          {sessions.length === 0 && (
+            <div className="text-center py-8">
+              <MessageSquare className="w-8 h-8 text-on-surface-variant/20 mx-auto mb-2" />
+              <p className="text-xs text-on-surface-variant/50">No conversations yet</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-4 md:px-6 py-3 border-b border-outline-variant/20 bg-white/80 backdrop-blur-md shrink-0">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-1.5 rounded-lg hover:bg-surface-variant/20 text-on-surface-variant/60 transition-all"
+          >
+            {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-md shadow-primary/20">
+            <Bot className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h1 className="text-sm font-heading font-bold text-on-surface">Agent</h1>
+            <p className="text-[10px] text-on-surface-variant/50">
+              {isStreaming ? "Generating response..." : activeSessionId ? "Ready" : "Start a conversation"}
+            </p>
+          </div>
+          <span className="ml-auto flex items-center gap-1.5 text-[10px] text-on-surface-variant/40 bg-outline-variant/20 px-2 py-1 rounded-full">
+            <Sparkles className="w-3 h-3" /> Gemini
+          </span>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-4">
+          {!activeSessionId && messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center mb-4">
+                <Bot className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-lg font-heading font-bold text-on-surface mb-2">How can I help you?</h2>
+              <p className="text-sm text-on-surface-variant/60 max-w-md">
+                Ask me to look up clients, create projects, check payments, or analyze your business.
+              </p>
+              <div className="grid grid-cols-2 gap-2 max-w-lg mt-6 w-full">
+                {[
+                  { label: "Show recent clients", prompt: "Show me my recent clients" },
+                  { label: "Project status", prompt: "What projects are in revision?" },
+                  { label: "Pending payments", prompt: "Show pending invoices and amounts" },
+                  { label: "Weekly summary", prompt: "Give me a business summary for this week" },
+                ].map((action) => (
+                  <button
+                    key={action.label}
+                    onClick={() => { setInput(action.prompt); inputRef.current?.focus() }}
+                    className="flex items-center gap-2 px-4 py-3 rounded-xl bg-white border border-outline-variant/20 text-xs text-on-surface-variant/70 hover:border-primary/30 hover:text-primary hover:bg-primary/5 transition-all text-left"
+                  >
+                    <Terminal className="w-3.5 h-3.5 shrink-0" />
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {messages.map((msg, idx) => (
+            <div
+              key={msg.id || idx}
+              className={clsx(
+                "flex gap-3 max-w-4xl",
+                msg.role === "user" ? "ml-auto flex-row-reverse" : "",
               )}
+            >
               <div
                 className={clsx(
-                  "rounded-2xl px-4 py-3 whitespace-pre-wrap text-sm leading-relaxed",
+                  "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 shadow-sm",
                   msg.role === "agent"
-                    ? "bg-white border border-outline-variant/20 text-on-surface shadow-sm"
-                    : "bg-gradient-to-br from-primary to-secondary text-white"
+                    ? "bg-gradient-to-br from-primary to-secondary text-white"
+                    : "bg-surface-variant/40 text-on-surface-variant",
                 )}
               >
-                {msg.content}
+                {msg.role === "agent" ? (
+                  <Bot className="w-4 h-4" />
+                ) : (
+                  <div className="w-4 h-4 rounded-full bg-on-surface-variant/50" />
+                )}
               </div>
 
-              {/* Actions */}
-              {msg.role === "agent" && msg.id !== "welcome" && (
-                <div className="flex items-center gap-2 px-1">
-                  <button
-                    onClick={() => copyToClaude(msg.content)}
-                    className="flex items-center gap-1 text-[10px] text-on-surface-variant/50 hover:text-primary transition-colors"
-                  >
-                    <Sparkles className="w-3 h-3" /> Copy for Claude
-                  </button>
-                  <span className="text-[10px] text-on-surface-variant/40">
-                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </span>
+              <div className={clsx("space-y-1", msg.role === "user" ? "max-w-[70%]" : "max-w-[85%]")}>
+                <div
+                  className={clsx(
+                    "rounded-2xl px-4 py-3 leading-relaxed",
+                    msg.role === "agent"
+                      ? "bg-white border border-outline-variant/20 shadow-sm"
+                      : "bg-gradient-to-br from-primary to-secondary text-white",
+                  )}
+                >
+                  {msg.role === "agent" ? (
+                    <Markdown content={msg.content} />
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Streaming message */}
+          {isStreaming && streamingContent && (
+            <div className="flex gap-3 max-w-4xl">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-sm shrink-0">
+                <Bot className="w-4 h-4 text-white" />
+              </div>
+              <div className="max-w-[85%]">
+                <div className="rounded-2xl px-4 py-3 bg-white border border-outline-variant/20 shadow-sm">
+                  <Markdown content={streamingContent} />
+                  <span className="inline-block w-2 h-4 bg-primary/60 animate-pulse ml-0.5 rounded-sm" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Thinking indicator */}
+          {isStreaming && !streamingContent && (
+            <div className="flex gap-3 max-w-4xl">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-sm shrink-0">
+                <Bot className="w-4 h-4 text-white" />
+              </div>
+              <div className="rounded-2xl px-5 py-3.5 bg-white border border-outline-variant/20 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-2 h-2 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                  <span className="text-xs text-on-surface-variant/50 font-medium">Thinking...</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-error/5 border border-error/20 text-xs text-error max-w-lg mx-auto">
+              {error}
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* File preview */}
+        {selectedFile && (
+          <div className="px-4 md:px-6 py-2 border-t border-outline-variant/10 bg-surface-variant/5">
+            <div className="flex items-center gap-3 p-2 rounded-xl bg-white border border-outline-variant/20 max-w-md">
+              {preview ? (
+                <img src={preview} alt="" className="w-10 h-10 rounded-lg object-cover" />
+              ) : (
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-primary" />
                 </div>
               )}
-            </div>
-          </div>
-        ))}
-
-        {/* Processing indicator */}
-        {isProcessing && (
-          <div className="flex gap-3 max-w-3xl">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-md shrink-0">
-              <Bot className="w-4 h-4 text-white" />
-            </div>
-            <div className="bg-white border border-outline-variant/20 rounded-2xl px-4 py-3 shadow-sm">
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                <span className="text-xs text-on-surface-variant/70">Thinking...</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-on-surface truncate">{selectedFile.name}</p>
+                <p className="text-[10px] text-on-surface-variant/50">{(selectedFile.size / 1024).toFixed(1)} KB</p>
               </div>
+              <button onClick={removeFile} className="p-1 rounded-lg hover:bg-outline-variant/20">
+                <X className="w-4 h-4 text-on-surface-variant/50" />
+              </button>
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
-      </div>
 
-      {/* Quick actions */}
-      {messages.length === 1 && (
-        <div className="px-4 md:px-6 pb-3">
-          <div className="flex flex-wrap gap-2">
-            {quickActions.map((action) => (
-              <button
-                key={action.label}
-                onClick={() => {
-                  setInput(action.prompt)
-                  handleSend(action.prompt)
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-outline-variant/20 text-xs text-on-surface-variant/80 hover:border-primary/30 hover:text-primary hover:bg-primary/5 transition-all"
-              >
-                <Command className="w-3 h-3" />
-                {action.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+        {/* Input bar */}
+        <div className="shrink-0 border-t border-outline-variant/20 bg-white/90 backdrop-blur-md px-4 md:px-6 py-3">
+          <div className="flex items-end gap-2 max-w-4xl mx-auto">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              className="hidden"
+              accept="image/*,.pdf,.doc,.docx,.txt"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isStreaming}
+              className="p-2.5 rounded-xl hover:bg-surface-variant/30 text-on-surface-variant/50 hover:text-primary transition-all shrink-0 disabled:opacity-30"
+            >
+              <Paperclip className="w-5 h-5" />
+            </button>
 
-      {/* File preview */}
-      {selectedFile && (
-        <div className="px-4 md:px-6 py-2 border-t border-outline-variant/10 bg-surface-variant/10">
-          <div className="flex items-center gap-3 p-2 rounded-xl bg-white border border-outline-variant/20 max-w-md">
-            {preview ? (
-              <img src={preview} alt="Preview" className="w-12 h-12 rounded-lg object-cover" />
-            ) : (
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FileText className="w-5 h-5 text-primary" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-on-surface truncate">{selectedFile.name}</p>
-              <p className="text-[10px] text-on-surface-variant/60">
-                {(selectedFile.size / 1024).toFixed(1)} KB
-              </p>
+            <div className="flex-1 relative">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask anything about your business..."
+                rows={1}
+                disabled={isStreaming}
+                className="w-full bg-surface-variant/10 border border-outline-variant/30 rounded-2xl px-4 py-3 pr-12 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary/30 resize-none disabled:opacity-50"
+                style={{ minHeight: "44px", maxHeight: "120px" }}
+              />
+              {isStreaming && (
+                <button
+                  onClick={() => abortRef.current?.abort()}
+                  className="absolute right-2 bottom-2 p-1.5 rounded-lg bg-error/10 text-error text-[10px] font-semibold hover:bg-error/20 transition-all"
+                >
+                  Stop
+                </button>
+              )}
             </div>
-            <button onClick={removeFile} className="p-1 rounded-lg hover:bg-outline-variant/20">
-              <X className="w-4 h-4 text-on-surface-variant/60" />
+
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isStreaming}
+              className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-secondary text-white shadow-md hover:shadow-lg hover:shadow-primary/20 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+            >
+              <Send className="w-5 h-5" />
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Input bar */}
-      <div className="shrink-0 border-t border-outline-variant/20 bg-white/80 backdrop-blur-md px-4 md:px-6 py-3">
-        <div className="flex items-end gap-2 max-w-4xl mx-auto">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileSelect}
-            className="hidden"
-            accept="image/*,.pdf,.doc,.docx,.txt,.mp3,.mp4"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="p-2.5 rounded-xl hover:bg-surface-variant/30 text-on-surface-variant/60 hover:text-primary transition-all shrink-0"
-          >
-            <Paperclip className="w-5 h-5" />
-          </button>
-
-          <div className="flex-1 relative">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask me anything about your business..."
-              rows={1}
-              className="w-full bg-surface-variant/20 border border-outline-variant/30 rounded-2xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary/30 resize-none max-h-32"
-              style={{ minHeight: "44px" }}
-            />
-          </div>
-
-          <button
-            onClick={() => handleSend()}
-            disabled={!input.trim() && !selectedFile}
-            className="p-2.5 rounded-xl bg-gradient-to-br from-primary to-secondary text-white shadow-md hover:shadow-lg hover:shadow-primary/20 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-          >
-            <Send className="w-5 h-5" />
-          </button>
         </div>
       </div>
     </div>
