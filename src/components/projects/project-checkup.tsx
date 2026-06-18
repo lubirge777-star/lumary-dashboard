@@ -1,10 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
 import {
-  ClipboardCheck, Plus, Check, SkipForward, Clock, Sparkles,
-  Loader2, AlertCircle, ChevronDown, ChevronUp, Copy,
+  ClipboardCheck, Plus, Check, SkipForward, Sparkles,
+  Loader2, ChevronDown, ChevronUp,
 } from "lucide-react"
 import { useProjectCheckups, useCreateCheckup, useAnswerCheckup } from "@/lib/api-hooks"
 import type { ProjectCheckup } from "@/types"

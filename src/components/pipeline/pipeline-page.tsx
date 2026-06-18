@@ -19,10 +19,10 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { Button } from "@/components/ui/button"
-import { Badge, statusBadge } from "@/components/ui/badge"
-import { formatTSh, formatRelativeDate } from "@/lib/utils"
+import { statusBadge } from "@/components/ui/badge"
+import { formatTSh } from "@/lib/utils"
 import { Project, ProjectStatus } from "@/types"
-import { Plus, GripVertical, AlertCircle, Search, X, ChevronDown, ChevronUp, ExternalLink, MessageCircle, Calendar } from "lucide-react"
+import { Plus, GripVertical, AlertCircle, Search, X } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
 import { ProjectCheckup } from "@/components/projects/project-checkup"
 
@@ -144,7 +144,7 @@ export function PipelinePage() {
     return p
   }, [deferredSearch, serviceFilter])
   const { data, isLoading, error, refetch } = useProjects(params)
-  const projects: Project[] = data?.items ?? []
+  const projects = useMemo(() => (data?.items ?? []) as Project[], [data])
   const updateProjectStatus = useUpdateProjectStatus()
   const [activeId, setActiveId] = useState<string | null>(null)
 
@@ -284,7 +284,7 @@ export function PipelinePage() {
                 <div>
                   <div className="flex items-center gap-3">
                     <h3 className="text-lg font-heading font-bold text-on-surface">{selectedProject.clientName}</h3>
-                    <span className={statusBadge(selectedProject.status as any)}>
+                    <span className={statusBadge(String(selectedProject.status))}>
                       {selectedProject.status.replace(/_/g, " ")}
                     </span>
                   </div>

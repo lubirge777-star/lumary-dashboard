@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server"
 import { generateContent } from "@/lib/gemini"
 import { prisma } from "@/lib/prisma"
@@ -167,7 +168,7 @@ export async function POST(req: NextRequest) {
           const fixText = fix ? `\n\n💡 *Tip:* ${fix}` : ""
           reply = reply.replace(jsonMatch[0], `❌ **${cmd.action}** imeshindwa: ${actionResult.error}${fixText}`)
         }
-      } catch (e) {
+      } catch {
         reply = reply.replace(jsonMatch[0], "⚠️ Samahani, nimeshindwa kutekeleza amri hiyo.")
       }
     }
