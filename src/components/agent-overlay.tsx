@@ -67,14 +67,6 @@ export default function AgentOverlay() {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, streamingContent])
 
-  // Auto-resize textarea
-  useEffect(() => {
-    const el = inputRef.current
-    if (!el) return
-    el.style.height = "auto"
-    el.style.height = Math.min(el.scrollHeight, 80) + "px"
-  }, [input])
-
   // Fetch nudges on page load
   useEffect(() => {
     fetch("/api/v1/agent/nudges").then((r) => r.json()).then((data) => {
@@ -354,7 +346,7 @@ export default function AgentOverlay() {
               <textarea
                 ref={inputRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => { setInput(e.target.value); e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 80) + "px" }}
                 onKeyDown={handleKeyDown}
                 placeholder={`Ask about ${pageLabel}...`}
                 rows={1}

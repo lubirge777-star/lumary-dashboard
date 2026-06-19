@@ -28,14 +28,6 @@ export default function PortalAgentPage() {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, streamingContent])
 
-  // Auto-resize textarea
-  useEffect(() => {
-    const el = inputRef.current
-    if (!el) return
-    el.style.height = "auto"
-    el.style.height = Math.min(el.scrollHeight, 120) + "px"
-  }, [input])
-
   // Verify auth and get client name
   useEffect(() => {
     const storedId = sessionStorage.getItem("clientId")
@@ -200,7 +192,7 @@ export default function PortalAgentPage() {
           <textarea
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => { setInput(e.target.value); e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px" }}
             onKeyDown={handleKeyDown}
             placeholder="Ask about your projects, payments, or anything..."
             rows={1}
