@@ -2,6 +2,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 
 let genAI: GoogleGenerativeAI | null = null
 
+if (typeof process !== "undefined" && !process.env.GEMINI_API_KEY) {
+  console.warn("[gemini] GEMINI_API_KEY is not set — AI features will be disabled")
+}
+
 function getClient(): GoogleGenerativeAI | null {
   const key = process.env.GEMINI_API_KEY
   if (!key) return null
@@ -9,16 +13,27 @@ function getClient(): GoogleGenerativeAI | null {
   return genAI
 }
 
-// Model priorities from env: ["gemini-3.5-live-translate","gemini-3-flash-live","gemini-2.5-flash-audio","gemini-2.0-flash"]
+const VALID_GEMINI_PREFIXES = ["gemini-", "learnlm-"]
+const FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-1.5-pro"]
+
 function getModelNames(): string[] {
+  let models: string[] = []
   try {
     const raw = process.env.GEMINI_MODEL_PRIORITY
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      if (Array.isArray(parsed) && parsed.length > 0) models = parsed
     }
   } catch {}
-  return [process.env.GEMINI_MODEL || "gemini-2.0-flash"]
+
+  if (models.length === 0) {
+    models = [process.env.GEMINI_MODEL || "gemini-2.0-flash"].filter(Boolean)
+  }
+
+  const valid = models.filter((m) => VALID_GEMINI_PREFIXES.some((p) => m.startsWith(p)))
+  if (valid.length > 0) return valid
+
+  return FALLBACK_MODELS
 }
 
 // Pick the first available model that has audio capabilities
