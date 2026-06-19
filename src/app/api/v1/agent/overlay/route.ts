@@ -39,13 +39,14 @@ function sse(event: string, data: any): string {
 export async function POST(req: NextRequest) {
   const encoder = new TextEncoder()
 
-  if (!await isAvailable()) {
-    return new Response(sse("error", { message: "Gemini API key not configured" }), {
-      headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
-    })
-  }
+  try {
+    if (!await isAvailable()) {
+      return new Response(sse("error", { message: "Gemini API key not configured" }), {
+        headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
+      })
+    }
 
-  const { message, page, history = [] } = await req.json()
+    const { message, page, history = [] } = await req.json()
   if (!message?.trim()) {
     return new Response(sse("error", { message: "Message is required" }), {
       headers: { "Content-Type": "text/event-stream" },
@@ -56,10 +57,12 @@ export async function POST(req: NextRequest) {
   const pageContext = await buildPageContext(page)
   const enrichedMessage = `${pageContext}\n\n[USER on "${page}"]\n${message}`
 
-  const turns: ChatTurn[] = history.map((h: any) => ({
+  let turns: ChatTurn[] = history.map((h: any) => ({
     role: h.role === "user" ? "user" : "model",
     parts: [{ text: h.content }],
   }))
+  // Gemini requires history to start with user role and alternate
+  while (turns.length > 0 && turns[0].role !== "user") { turns.shift() }
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -83,9 +86,16 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  return new Response(stream, {
-    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
-  })
+    return new Response(stream, {
+      headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
+    })
+  } catch (e) {
+    console.error("Overlay route error:", e)
+    return new Response(sse("error", { message: "Internal error" }), {
+      headers: { "Content-Type": "text/event-stream" },
+      status: 200,
+    })
+  }
 }
 
 async function buildPageContext(page: string): Promise<string> {
@@ -98,7 +108,8 @@ async function buildPageContext(page: string): Promise<string> {
       prisma.payment.aggregate({ where: { status: "UNPAID" }, _sum: { amount: true } }),
     ])
 
-    const customCount = await prisma.customPage.count()
+    let customCount = 0
+    try { customCount = await prisma.customPage.count() } catch {}
     let pageSpecific = `Custom pages: ${customCount}.`
     if (page === "/" || page === "") {
       const monthlyRevenue = await prisma.payment.aggregate({ where: { status: "PAID" }, _sum: { amount: true } })

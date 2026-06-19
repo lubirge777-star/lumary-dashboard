@@ -70,10 +70,12 @@ You are speaking with ${client.name}. Be polite, professional, and helpful. Answ
 5. Translate to Swahili if the client messages in Swahili
 6. ONLY reference data from the client context above`
 
-  const turns: ChatTurn[] = history.map((h: any) => ({
+  let turns: ChatTurn[] = history.map((h: any) => ({
     role: h.role === "user" ? "user" : "model",
     parts: [{ text: h.content }],
   }))
+  // Gemini requires history to start with user role and alternate
+  while (turns.length > 0 && turns[0].role !== "user") { turns.shift() }
 
   const enriched = `${context}\n\n[CLIENT MESSAGE]\n${message}`
 
