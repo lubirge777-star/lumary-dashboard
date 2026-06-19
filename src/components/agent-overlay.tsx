@@ -67,6 +67,14 @@ export default function AgentOverlay() {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, streamingContent])
 
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = Math.min(el.scrollHeight, 80) + "px"
+  }, [input])
+
   // Fetch nudges on page load
   useEffect(() => {
     fetch("/api/v1/agent/nudges").then((r) => r.json()).then((data) => {
@@ -195,17 +203,12 @@ export default function AgentOverlay() {
           } catch {}
         }
       }
-      if (streamingContent && !fullResponse) {
-        setMessages((prev) => [...prev, { role: "agent", content: streamingContent }])
-        if (speakEnabled) speakText(streamingContent)
-        setStreamingContent("")
-      }
-      setIsStreaming(false)
     } catch (err: any) {
       if (err.name !== "AbortError") setError("Connection lost")
+    } finally {
       setIsStreaming(false)
     }
-  }, [input, messages, pathname, streamingContent, speakEnabled])
+  }, [input, messages, pathname, speakEnabled])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() }

@@ -28,6 +28,14 @@ export default function PortalAgentPage() {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, streamingContent])
 
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = Math.min(el.scrollHeight, 120) + "px"
+  }, [input])
+
   // Verify auth and get client name
   useEffect(() => {
     const storedId = sessionStorage.getItem("clientId")
@@ -63,26 +71,33 @@ export default function PortalAgentPage() {
       if (!reader) throw new Error("No reader")
       const decoder = new TextDecoder()
       let buffer = ""
+      let fullResponse = ""
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
         buffer += decoder.decode(value, { stream: true })
-        for (const line of buffer.split("\n").filter((l) => l.startsWith("data: "))) {
+        const lines = buffer.split("\n")
+        buffer = lines.pop() || ""
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue
           try {
             const data = JSON.parse(line.slice(6))
-            if (data.event === "chunk" && data.data?.text) setStreamingContent((prev) => prev + data.data.text)
-            else if (data.event === "done") {
-              setMessages((prev) => [...prev, { role: "agent", content: data.data.full || streamingContent }])
+            if (data.event === "chunk" && data.data?.text) {
+              fullResponse += data.data.text
+              setStreamingContent((prev) => prev + data.data.text)
+            } else if (data.event === "done") {
+              const finalContent = data.data.full || fullResponse
+              setMessages((prev) => [...prev, { role: "agent", content: finalContent }])
               setStreamingContent("")
               setIsStreaming(false)
+              return
             }
           } catch {}
         }
-        buffer = ""
       }
-      if (streamingContent) {
-        setMessages((prev) => [...prev, { role: "agent", content: streamingContent }])
+      if (fullResponse) {
+        setMessages((prev) => [...prev, { role: "agent", content: fullResponse }])
         setStreamingContent("")
       }
       setIsStreaming(false)
