@@ -32,6 +32,9 @@
 | Typebot Viewer | 8082 | ✅ Running |
 | Dashboard | 3000 | ✅ Running |
 
+## Database Fix (2026-06-19)
+All 8 custom PostgreSQL ENUM types migrated to `text` columns to resolve `PrismaClientKnownRequestError` with `@prisma/adapter-pg` v7.8.0 adapter. ENUMs dropped after migration.
+
 ## API Keys (in .env + docker-compose)
 - **Evolution API**: `429683C4C977415CAAFCCE10F7D57E11` ✅
 - **Chatwoot**: `j3fXvL8RemHgsenabEHhwpP1` ✅
