@@ -40,6 +40,7 @@ const nav = {
     { label: "Calendar", href: "/calendar", icon: Calendar },
     { label: "Retainers", href: "/retainers", icon: Repeat },
     { label: "Analytics", href: "/analytics", icon: BarChart3 },
+    { label: "Predictions", href: "/predictions", icon: Brain },
     { label: "Content", href: "/content", icon: CalendarCheck },
   ],
   operations: [

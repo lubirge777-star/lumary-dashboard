@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { usePathname } from "next/navigation"
-import { Bot, Sparkles, X, Send, Loader2, Terminal, Mic, Volume2, PanelRightClose, PanelRightOpen } from "lucide-react"
+import { Bot, Sparkles, X, Send, Loader2, Terminal, Mic, Volume2, VolumeX, PanelRightClose, PanelRightOpen, Bell } from "lucide-react"
 import Markdown from "@/components/agent/markdown"
 import VoiceRecorder from "@/components/voice-recorder"
 import clsx from "clsx"
@@ -21,15 +21,34 @@ interface AgentAction {
   body?: Record<string, unknown>
 }
 
+let wakeWordRecognition: any = null
+
+function speakText(text: string, onEnd?: () => void) {
+  if (!("speechSynthesis" in window)) return
+  window.speechSynthesis.cancel()
+  const clean = text.replace(/[*#\[\]()>|`\n-]/g, " ").replace(/\s+/g, " ").trim()
+  if (!clean) return
+  const utterance = new SpeechSynthesisUtterance(clean)
+  utterance.rate = 1.1
+  utterance.pitch = 1.0
+  utterance.volume = 1.0
+  const voices = window.speechSynthesis.getVoices()
+  const preferred = voices.find((v) => v.lang.startsWith("en") && v.name.includes("Female")) || voices.find((v) => v.lang.startsWith("en"))
+  if (preferred) utterance.voice = preferred
+  if (onEnd) utterance.onend = onEnd
+  window.speechSynthesis.speak(utterance)
+}
+
+function stopSpeech() {
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel()
+}
+
 export default function AgentOverlay() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [fullScreen, setFullScreen] = useState(false)
   const [messages, setMessages] = useState<AgentMessage[]>([
-    {
-      role: "agent",
-      content: "I'm your studio agent. I can help you navigate, run commands, and answer questions about any page.",
-    },
+    { role: "agent", content: "I'm your studio agent. I can help you navigate, run commands, and answer questions about any page." },
   ])
   const [input, setInput] = useState("")
   const [isStreaming, setIsStreaming] = useState(false)
@@ -38,16 +57,86 @@ export default function AgentOverlay() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [speakEnabled, setSpeakEnabled] = useState(false)
+  const [unreadNudges, setUnreadNudges] = useState(0)
+  const [nudgeBanner, setNudgeBanner] = useState<string | null>(null)
+  const wakeActiveRef = useRef(false)
 
-  // Get current page name from pathname
   const currentPage = pathname === "/" ? "Overview" : pathname.split("/").pop() || "Dashboard"
   const pageLabel = currentPage.charAt(0).toUpperCase() + currentPage.slice(1)
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, streamingContent])
 
+  // Fetch nudges on page load
+  useEffect(() => {
+    fetch("/api/v1/agent/nudges").then((r) => r.json()).then((data) => {
+      if (data.nudges?.length > 0) {
+        setUnreadNudges(data.nudges.length)
+        if (!isOpen) setNudgeBanner(data.nudges[0].message)
+      }
+    }).catch(() => {})
+  }, [pathname, isOpen])
+
+  // Wake word detection
+  useEffect(() => {
+    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) return
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognitionAPI) return
+
+    const startWakeWord = () => {
+      if (wakeWordRecognition) wakeWordRecognition.stop()
+      const recognition = new SpeechRecognitionAPI()
+      recognition.continuous = true
+      recognition.interimResults = false
+      recognition.lang = "en-US"
+
+      recognition.onresult = (event: any) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript.toLowerCase()
+          if (transcript.includes("hey agent") || transcript.includes("hey lumary") || transcript.includes("okay agent")) {
+            wakeActiveRef.current = true
+            setIsOpen(true)
+            recognition.stop()
+            // Now listen for the actual command
+            setTimeout(() => {
+              const cmdRecognition = new SpeechRecognitionAPI()
+              cmdRecognition.continuous = false
+              cmdRecognition.interimResults = true
+              cmdRecognition.lang = "en-US"
+              cmdRecognition.onresult = (cmdEvent: any) => {
+                let cmdText = ""
+                for (let j = cmdEvent.resultIndex; j < cmdEvent.results.length; j++) {
+                  cmdText += cmdEvent.results[j][0].transcript
+                }
+                if (cmdText.trim()) {
+                  setInput(cmdText)
+                  setTimeout(() => handleSend(cmdText), 200)
+                }
+              }
+              cmdRecognition.onend = () => { wakeActiveRef.current = false; startWakeWord() }
+              cmdRecognition.start()
+            }, 500)
+            return
+          }
+        }
+      }
+      recognition.onerror = () => { setTimeout(startWakeWord, 3000) }
+      recognition.onend = () => { if (!wakeActiveRef.current) setTimeout(startWakeWord, 1000) }
+      wakeWordRecognition = recognition
+      recognition.start()
+    }
+
+    startWakeWord()
+    return () => { if (wakeWordRecognition) { wakeWordRecognition.stop(); wakeWordRecognition = null } }
+  }, [])
+
   const handleSend = useCallback(async (text?: string) => {
     const message = text || input.trim()
     if (!message) return
+
+    setNudgeBanner(null)
+    setUnreadNudges(0)
+    stopSpeech()
 
     const userMsg: AgentMessage = { role: "user", content: message }
     setMessages((prev) => [...prev, userMsg])
@@ -76,6 +165,7 @@ export default function AgentOverlay() {
       if (!reader) throw new Error("No reader")
       const decoder = new TextDecoder()
       let buffer = ""
+      let fullResponse = ""
 
       while (true) {
         const { done, value } = await reader.read()
@@ -89,11 +179,14 @@ export default function AgentOverlay() {
           try {
             const data = JSON.parse(line.slice(6))
             if (data.event === "chunk" && data.data?.text) {
+              fullResponse += data.data.text
               setStreamingContent((prev) => prev + data.data.text)
             } else if (data.event === "done") {
-              setMessages((prev) => [...prev, { role: "agent", content: data.data.full || streamingContent, actions: data.data.actions }])
+              const finalContent = data.data.full || fullResponse
+              setMessages((prev) => [...prev, { role: "agent", content: finalContent, actions: data.data.actions }])
               setStreamingContent("")
               setIsStreaming(false)
+              if (speakEnabled && finalContent) speakText(finalContent)
             } else if (data.event === "error") {
               setError(data.data?.message || "Error")
               setIsStreaming(false)
@@ -102,8 +195,9 @@ export default function AgentOverlay() {
           } catch {}
         }
       }
-      if (streamingContent) {
+      if (streamingContent && !fullResponse) {
         setMessages((prev) => [...prev, { role: "agent", content: streamingContent }])
+        if (speakEnabled) speakText(streamingContent)
         setStreamingContent("")
       }
       setIsStreaming(false)
@@ -111,7 +205,7 @@ export default function AgentOverlay() {
       if (err.name !== "AbortError") setError("Connection lost")
       setIsStreaming(false)
     }
-  }, [input, messages, pathname, streamingContent])
+  }, [input, messages, pathname, streamingContent, speakEnabled])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() }
@@ -130,12 +224,25 @@ export default function AgentOverlay() {
       const data = await res.json()
       setMessages((prev) => [...prev, { role: "agent", content: `✅ **${action.label}** complete.\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\`` }])
     } catch {
-      setMessages((prev) => [...prev, { role: "agent", content: `❌ **${action.label}** failed. Check permissions and try again.` }])
+      setMessages((prev) => [...prev, { role: "agent", content: `❌ **${action.label}** failed.` }])
     }
   }
 
   return (
     <>
+      {/* Nudge Banner */}
+      {nudgeBanner && !isOpen && (
+        <div className="fixed bottom-20 right-20 z-50 max-w-xs animate-fadeInUp">
+          <button
+            onClick={() => { setIsOpen(true); setNudgeBanner(null) }}
+            className="w-full flex items-center gap-2 px-4 py-3 rounded-2xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 shadow-lg text-left text-sm text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-all"
+          >
+            <Bell className="w-4 h-4 shrink-0" />
+            <span className="flex-1 text-xs leading-relaxed line-clamp-2">{nudgeBanner}</span>
+          </button>
+        </div>
+      )}
+
       {/* Panel */}
       <div
         className={clsx(
@@ -155,11 +262,23 @@ export default function AgentOverlay() {
               <Bot className="w-4 h-4 text-white" />
             </div>
             <span className="text-sm font-semibold text-on-surface">Agent</span>
+            {unreadNudges > 0 && (
+              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                <Bell className="w-3 h-3" />{unreadNudges}
+              </span>
+            )}
             <span className="text-[10px] text-on-surface-variant/50 bg-surface-variant/30 px-1.5 py-0.5 rounded-md ml-1">
               {pageLabel}
             </span>
           </div>
           <div className="flex items-center gap-1">
+            <button
+              onClick={() => setSpeakEnabled(!speakEnabled)}
+              className={clsx("p-1.5 rounded-lg transition-all", speakEnabled ? "text-primary bg-primary/10" : "text-on-surface-variant/60 hover:bg-outline-variant/30")}
+              title={speakEnabled ? "Mute" : "Enable speech"}
+            >
+              {speakEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </button>
             <button onClick={() => setFullScreen(!fullScreen)} className="p-1.5 rounded-lg hover:bg-outline-variant/30 text-on-surface-variant/60 transition-all" title={fullScreen ? "Minimize" : "Expand"}>
               {fullScreen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
             </button>
@@ -261,7 +380,7 @@ export default function AgentOverlay() {
             ? "bottom-4 right-4 w-10 h-10 rounded-xl bg-surface-variant/80 text-on-surface-variant border border-outline-variant/30"
             : "bottom-4 right-4 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-secondary text-white shadow-primary/20 hover:shadow-primary/30",
         )}
-        title={isOpen ? "Close agent" : "Open agent"}
+        title={isOpen ? "Close agent" : "Open agent — say 'Hey Agent'"}
       >
         {isOpen ? <X className="w-5 h-5" /> : <Bot className="w-6 h-6" />}
       </button>

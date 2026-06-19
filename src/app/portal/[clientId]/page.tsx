@@ -7,7 +7,7 @@ import { formatTSh } from "@/lib/utils"
 import {
   LogOut, Package, Calendar, DollarSign,
   MessageSquare, Clock, CheckCircle2,
-  AlertCircle,
+  AlertCircle, Bot,
 } from "lucide-react"
 
 interface PortalProject {
@@ -276,6 +276,13 @@ export default function PortalDashboardPage() {
           <LogOut className="w-4 h-4" />
           Sign Out
         </button>
+        <a
+          href={`/portal/${clientIdFromUrl}/agent`}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-br from-primary to-secondary text-white text-sm font-semibold hover:shadow-lg hover:shadow-primary/20 active:scale-95 transition-all"
+        >
+          <Bot className="w-4 h-4" />
+          <span className="hidden sm:inline">Ask AI Assistant</span>
+        </a>
       </div>
 
       {/* Client Info Bar */}
