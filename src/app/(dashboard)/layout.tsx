@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import clsx from "clsx"
-import CopilotWidget from "@/components/copilot-widget"
+import AgentOverlay from "@/components/agent-overlay"
 import NotificationDropdown from "@/components/notification-dropdown"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { RoleBadge } from "@/components/use-role"
@@ -133,6 +133,14 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [collapsed, setCollapsed] = useLocalStorage<Record<string, boolean>>("sidebar-collapsed", {})
   const [pinned, setPinned] = useLocalStorage<string[]>("sidebar-pinned", [])
+  const [customPages, setCustomPages] = useState<{ id: string; title: string; slug: string }[]>([])
+
+  useEffect(() => {
+    fetch("/api/v1/custom-pages")
+      .then((r) => r.json())
+      .then(setCustomPages)
+      .catch(() => {})
+  }, [])
 
   const isActive = (href: string) => pathname === href
 
@@ -267,6 +275,37 @@ export default function DashboardLayout({
           )}
           {/* Sections */}
           {sectionMeta.map(renderSection)}
+
+          {/* Custom Pages */}
+          {customPages.length > 0 && (
+            <div>
+              <div className="h-px bg-outline-variant/10 mx-4 my-3" />
+              <p className="text-label-bold text-on-surface-variant uppercase px-4 mb-2 tracking-widest opacity-70">
+                Custom
+              </p>
+              <div className="space-y-0.5">
+                {customPages.map((p) => {
+                  const active = isActive(`/custom/${p.id}`) || isActive(`/custom/${p.slug}`)
+                  return (
+                    <Link
+                      key={p.id}
+                      href={`/custom/${p.id}`}
+                      onClick={() => setSidebarOpen(false)}
+                      className={clsx(
+                        "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all",
+                        active
+                          ? "bg-primary-container/10 text-primary font-bold shadow-sm"
+                          : "text-on-surface-variant hover:bg-black/5"
+                      )}
+                    >
+                      <LayoutDashboard className="w-[18px] h-[18px] shrink-0 opacity-60" />
+                      <span className="text-sm">{p.title}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </nav>
 
         {/* Sign out */}
@@ -341,7 +380,7 @@ export default function DashboardLayout({
             {children}
           </ErrorBoundary>
         </div>
-        <CopilotWidget />
+        <AgentOverlay />
         <CommandPalette />
       </main>
 

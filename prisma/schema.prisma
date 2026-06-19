@@ -869,3 +869,16 @@ model ChatMessage {
   @@index([sessionId])
   @@index([createdAt])
 }
+
+model CustomPage {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  config    Json     // { blocks: [...], layout: "grid"|"list", dataSource: "..." }
+  userId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([updatedAt])
+}
