@@ -294,7 +294,7 @@ export default function AgentOverlay() {
                   : "bg-gradient-to-br from-primary to-secondary text-white",
               )}>
                 {msg.role === "agent" ? <Markdown content={msg.content} /> : <p className="whitespace-pre-wrap">{msg.content}</p>}
-                {msg.actions && msg.actions.length > 0 && (
+                {Array.isArray(msg.actions) && msg.actions.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-outline-variant/20">
                     {msg.actions.map((action, ai) => (
                       <button

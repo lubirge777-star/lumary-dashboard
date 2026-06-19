@@ -7,86 +7,12 @@ datasource db {
   provider = "postgresql"
 }
 
-enum UserRole {
-  OWNER
-  AGENT
-  VIEWER
-}
-
-enum ClientStatus {
-  ACTIVE
-  RETAINER
-  DORMANT
-  CHURNED
-}
-
-enum ProjectStatus {
-  NEW_INQUIRY
-  QUOTED
-  DEPOSIT_PAID
-  IN_PROGRESS
-  REVISION
-  FINAL_DELIVERED
-  PAID
-  RETAINER_PITCH
-}
-
-enum PaymentStatus {
-  UNPAID
-  FIFTY_PERCENT
-  PAID
-  OVERDUE
-  REFUNDED
-}
-
-enum PaymentMethod {
-  MPESA
-  BANK
-  CASH
-  STRIPE
-  OTHER
-}
-
-enum RetainerPackage {
-  WHATSAPP_PACK
-  SOCIAL_MEDIA_PACK
-  WEEKLY_PROMO_PACK
-  MONTHLY_STATUS_MARKETING
-  CREATOR_MONTHLY
-  BRAND_MANAGER
-  CUSTOM
-}
-
-enum ActivityType {
-  CLIENT_CREATED
-  PROJECT_CREATED
-  PROJECT_STATUS_CHANGED
-  PAYMENT_RECEIVED
-  EXPENSE_LOGGED
-  RETAINER_CREATED
-  RETAINER_RENEWED
-  MESSAGE_SENT
-  MESSAGE_RECEIVED
-  FILE_UPLOADED
-  NOTE_ADDED
-  SETTINGS_UPDATED
-  APPOINTMENT_SCHEDULED
-  APPOINTMENT_CANCELLED
-}
-
-enum ContentDeliveryStatus {
-  PENDING
-  DELIVERED
-  OVERDUE
-  ACCEPTED
-  REVISION_REQUESTED
-}
 
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String
-  role      UserRole @default(AGENT)
+  role      String @default("agent")
   avatar    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -109,7 +35,7 @@ model Client {
   totalSpent      Int          @default(0)
   firstProjectDate DateTime?
   lastProjectDate DateTime?
-  status          ClientStatus @default(ACTIVE)
+  status          String @default("ACTIVE")
   referralSource  String?
   notes           String?
   createdAt       DateTime     @default(now())
@@ -137,7 +63,7 @@ model Project {
   description     String?
   quotedAmount    Int
   depositAmount   Int?
-  status          ProjectStatus @default(NEW_INQUIRY)
+  status          String @default("NEW_INQUIRY")
   priority        String?
   assignedAgentId String?
   assignedAgent   User?         @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
@@ -177,8 +103,8 @@ model Payment {
 
   amount         Int
   usdEquiv       Int?
-  method         PaymentMethod @default(MPESA)
-  status         PaymentStatus @default(UNPAID)
+  method         String @default("MPESA")
+  status         String @default("UNPAID")
 
   mpesaReference String?
   receiptUrl     String?
@@ -212,7 +138,7 @@ model Retainer {
   clientId          String
   client            Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  package           RetainerPackage
+  package           String @default("CUSTOM")
   monthlyValue      Int
   contentDueBy      DateTime
   status            String           @default("active")
@@ -260,7 +186,7 @@ model Message {
 
 model Activity {
   id         String       @id @default(cuid())
-  type       ActivityType
+  type       String
   actorId    String?
   actorName  String?
 
@@ -383,40 +309,12 @@ model AISuggestion {
   @@index([createdAt])
 }
 
-enum AutomationTrigger {
-  MESSAGE_RECEIVED
-  MESSAGE_SENT
-  PAYMENT_RECEIVED
-  PROJECT_CREATED
-  PROJECT_STATUS_CHANGED
-  RETAINER_DUE
-  CLIENT_CREATED
-  INACTIVITY_ALERT
-}
-
-enum AutomationActionType {
-  SEND_WHATSAPP
-  UPDATE_PROJECT_STATUS
-  CREATE_ACTIVITY
-  SEND_EMAIL
-  CREATE_REMINDER
-  SUGGEST_ACTION
-}
-
 // ── Spec Feature Models ──────────────────────────────────────────────
-
-enum ServiceCategory {
-  QUICK_GRAPHICS
-  PACKAGES
-  RETAINERS
-  SETUP
-  WEBSITES
-}
 
 model ServicePricing {
   id          String          @id @default(cuid())
   name        String
-  category    ServiceCategory
+  category    String
   floorTsh    Int
   ceilingTsh  Int
   floorUsd    Int?
