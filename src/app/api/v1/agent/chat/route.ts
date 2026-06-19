@@ -94,7 +94,7 @@ Every day you should be aware of:
 5. If you don't know something, say so honestly — then look it up`
 
 function sse(event: string, data: any): string {
-  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
+  return `data: ${JSON.stringify({ event, data })}\n\n`
 }
 
 export async function POST(req: NextRequest) {

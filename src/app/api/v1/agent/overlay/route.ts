@@ -33,7 +33,7 @@ Example: [ACTION:{"label":"Create Dashboard","apiRoute":"/api/v1/agent/action","
 6. When showing data, format it clearly with markdown`
 
 function sse(event: string, data: any): string {
-  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
+  return `data: ${JSON.stringify({ event, data })}\n\n`
 }
 
 export async function POST(req: NextRequest) {

@@ -5,7 +5,7 @@ import { chatSendMessageStream, isAvailable } from "@/lib/gemini"
 import type { ChatTurn } from "@/lib/gemini"
 
 function sse(event: string, data: any): string {
-  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
+  return `data: ${JSON.stringify({ event, data })}\n\n`
 }
 
 export async function POST(req: NextRequest) {
