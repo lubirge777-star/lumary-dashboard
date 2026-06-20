@@ -9,20 +9,6 @@ function getConnectionString(): string {
   const url = process.env.DATABASE_URL
   if (!url) throw new Error("DATABASE_URL is not set")
 
-  try {
-    const parsed = new URL(url)
-    if (parsed.hostname.includes("pooler.supabase.com") || parsed.searchParams.get("pgbouncer") === "true") {
-      const match = parsed.username.match(/^postgres\.(.+)$/)
-      if (match) {
-        const projectRef = match[1]
-        parsed.hostname = `db.${projectRef}.supabase.co`
-        parsed.port = "5432"
-        parsed.search = ""
-        return parsed.toString()
-      }
-    }
-  } catch {}
-
   return url
 }
 
