@@ -8,7 +8,7 @@ export async function proxy(request: NextRequest) {
     request.cookies.get("authjs.session-token")?.value ||
     request.cookies.get("__Secure-authjs.session-token")?.value
 
-  if (!token && pathname !== "/login" && !pathname.startsWith("/api/auth") && !pathname.startsWith("/portal")) {
+  if (!token && pathname !== "/login" && !pathname.startsWith("/api/auth") && !pathname.startsWith("/portal") && !pathname.startsWith("/api/v1/diag")) {
     const loginUrl = new URL("/login", request.url)
     return NextResponse.redirect(loginUrl)
   }
@@ -17,5 +17,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api/auth|api/v1/webhooks|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api/auth|api/v1/webhooks|api/v1/diag|_next/static|_next/image|favicon.ico).*)"],
 }
