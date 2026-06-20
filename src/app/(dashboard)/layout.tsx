@@ -5,20 +5,19 @@ import { usePathname } from "next/navigation"
 import Link from "next/link"
 import {
   LayoutDashboard, Users, Kanban, Send,
-  Repeat, Wallet, Sparkles, Settings,
+  Repeat, Wallet, Settings,
   LogOut, Search, Mail, Zap, Calendar,
   Menu, X, BarChart3, ClipboardList,
   Receipt, CalendarCheck, GraduationCap,
   Lightbulb, MessageSquareReply,
   BookOpen, Clock, PenLine, Target, BookMarked,
-  Palette, TrendingUp, Flame, Brain, Globe,
+  Palette, TrendingUp, Flame, Globe,
   Trophy, Film, Heart, Building2,
   CheckSquare, ListChecks, Eye, Briefcase, Cloud,
-  Sun, Bot, Star, ChevronDown,
+  Sun, Star, ChevronDown,
 } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import clsx from "clsx"
-import AgentOverlay from "@/components/agent-overlay"
 import NotificationDropdown from "@/components/notification-dropdown"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { RoleBadge } from "@/components/use-role"
@@ -30,7 +29,6 @@ const nav = {
   dashboard: [
     { label: "Today", href: "/today", icon: Sun },
     { label: "Overview", href: "/", icon: LayoutDashboard },
-    { label: "Agent", href: "/agent", icon: Bot },
   ],
   business: [
     { label: "Clients", href: "/clients", icon: Users },
@@ -40,12 +38,10 @@ const nav = {
     { label: "Calendar", href: "/calendar", icon: Calendar },
     { label: "Retainers", href: "/retainers", icon: Repeat },
     { label: "Analytics", href: "/analytics", icon: BarChart3 },
-    { label: "Predictions", href: "/predictions", icon: Brain },
     { label: "Content", href: "/content", icon: CalendarCheck },
   ],
   operations: [
     { label: "Automation", href: "/automation", icon: Zap },
-    { label: "Agent Cron", href: "/agent?tab=cron", icon: Clock },
     { label: "Templates", href: "/templates", icon: MessageSquareReply },
     { label: "Pricing", href: "/pricing", icon: Receipt },
     { label: "Operations", href: "/operations", icon: ClipboardList },
@@ -381,7 +377,6 @@ export default function DashboardLayout({
             {children}
           </ErrorBoundary>
         </div>
-        <AgentOverlay />
         <CommandPalette />
       </main>
 

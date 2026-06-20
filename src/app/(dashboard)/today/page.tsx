@@ -65,36 +65,6 @@ function NudgeCard({ nudge, onDismiss }: { nudge: Nudge; onDismiss: (id: string)
   )
 }
 
-function AgentNudgeCard({ nudge }: { nudge: any }) {
-  const queryClient = useQueryClient()
-  const colors: Record<string, string> = {
-    critical: "bg-red-50 border-red-200 text-red-700 dark:bg-red-950/30 dark:border-red-800/30 dark:text-red-300",
-    high: "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/30 dark:border-amber-800/30 dark:text-amber-300",
-    medium: "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/30 dark:border-blue-800/30 dark:text-blue-300",
-    low: "bg-surface-variant/30 border-outline-variant/30 text-on-surface-variant",
-  }
-  return (
-    <div className={`flex items-start gap-3 p-3 rounded-xl border ${colors[nudge.severity] || colors.low}`}>
-      <Sparkles className="w-5 h-5 mt-0.5 shrink-0 text-primary" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-semibold">{nudge.title}</p>
-          {nudge.severity === "critical" && (
-            <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full">URGENT</span>
-          )}
-        </div>
-        <p className="text-xs mt-0.5 opacity-80">{nudge.message}</p>
-      </div>
-      <button
-        onClick={() => fetch(`/api/v1/agent/acknowledge?id=${nudge.id}`, { method: "PATCH" }).then(() => queryClient.invalidateQueries({ queryKey: ["agent-nudges-today"] }))}
-        className="text-on-surface-variant/50 hover:text-on-surface-variant shrink-0 text-lg leading-none"
-      >
-        &times;
-      </button>
-    </div>
-  )
-}
-
 function EditableField({ label, value, onSave }: { label: string; value: string; onSave: (v: string) => void }) {
   return (
     <div className="space-y-1">
@@ -174,13 +144,6 @@ export default function TodayPage() {
     return generateNudges(briefing)
   }, [briefing])
 
-  const { data: agentData } = useQuery({
-    queryKey: ["agent-nudges-today"],
-    queryFn: () => fetch("/api/v1/agent/nudges").then((r) => r.json()),
-    refetchInterval: 120000,
-  })
-  const agentNudges: any[] = agentData?.nudges ?? []
-
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto space-y-6 animate-pulse">
@@ -259,14 +222,11 @@ export default function TodayPage() {
       </div>
 
       {/* Nudges */}
-      {(nudges.length > 0 || agentNudges.length > 0) && (
+      {nudges.length > 0 && (
         <div className="space-y-2">
           <h2 className="text-label-sm font-bold text-on-surface-variant/80 uppercase tracking-wider px-1">Reminders</h2>
           {nudges.map((n) => (
             <NudgeCard key={n.id} nudge={n} onDismiss={(id) => dismissed.add(id)} />
-          ))}
-          {agentNudges.slice(0, 3).map((n: any) => (
-            <AgentNudgeCard key={n.id} nudge={n} />
           ))}
         </div>
       )}

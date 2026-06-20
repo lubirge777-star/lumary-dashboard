@@ -396,13 +396,10 @@ export default function OverviewPage() {
       <RelatedLinks
         title="Quick Access"
         links={[
-          { label: "Agent", href: "/agent", description: "Ask AI anything" },
           { label: "Clients", href: "/clients" },
           { label: "Pipeline", href: "/projects" },
           { label: "Messages", href: "/messages" },
-          { label: "Finance", href: "/finance" },
           { label: "Calendar", href: "/calendar" },
-          { label: "Agent Cron", href: "/agent?tab=cron", description: "Daily scan" },
         ]}
       />
     </div>
