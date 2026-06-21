@@ -701,6 +701,21 @@ model WhatsAppSync {
   @@index([createdAt])
 }
 
+model Reminder {
+  id        String   @id @default(cuid())
+  title     String
+  context   String?
+  priority  String   @default("medium")
+  dueAt     DateTime?
+  dismissed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dismissed])
+  @@index([priority])
+  @@index([dueAt])
+}
+
 model CustomPage {
   id        String   @id @default(cuid())
   title     String
