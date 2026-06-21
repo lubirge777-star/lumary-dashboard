@@ -430,21 +430,6 @@ export async function getInboxThreads() {
   return []
 }
 
-export async function getAISuggestions() {
-  const p = await db()
-  if (p) {
-    return p.aISuggestion.findMany({ where: { isDismissed: false }, orderBy: { createdAt: "desc" }, take: 10 }) as any
-  }
-  return []
-}
-
-export async function dismissAISuggestion(id: string) {
-  const p = await db()
-  if (p) {
-    await p.aISuggestion.update({ where: { id }, data: { isDismissed: true } })
-  }
-}
-
 export async function getAutomationRules() {
   const p = await db()
   if (p) {

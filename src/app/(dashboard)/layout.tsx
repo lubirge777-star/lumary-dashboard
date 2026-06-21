@@ -14,7 +14,7 @@ import {
   Palette, TrendingUp, Flame, Globe,
   Trophy, Film, Heart, Building2,
   CheckSquare, ListChecks, Eye, Briefcase, Cloud,
-  Sun, Star, ChevronDown,
+  Sun, Star, ChevronDown, Brain,
 } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import clsx from "clsx"

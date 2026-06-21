@@ -9,7 +9,6 @@ const daysAgo = (d: number) => new Date(Date.now() - d * 86400000)
 
 async function main() {
   // Clear all existing data in dependency order
-  await prisma.aISuggestion.deleteMany()
   await prisma.automationRule.deleteMany()
   await prisma.webhookLog.deleteMany()
   await prisma.message.deleteMany()
@@ -394,32 +393,6 @@ async function main() {
       { id: "a55", type: "PROJECT_STATUS_CHANGED", actorId: "u1", actorName: "Lubirge", targetType: "project", targetId: "p1", meta: { from: "FINAL_DELIVERED", to: "PAID" }, createdAt: daysAgo(138) },
     ],
   })
-  await prisma.aISuggestion.createMany({
-    data: [
-      { id: "ai1", type: "follow_up", title: "Follow up with Amina Kidogo", description: "Client asked for a quote 180 days ago but never responded. Send a friendly check-in message.", severity: "medium", source: "ai", targetType: "client", targetId: "c5", isDismissed: false, isApplied: false, createdAt: daysAgo(2) },
-      { id: "ai2", type: "upsell", title: "Suggest Social Media Pack to Maimuna", description: "Maimuna Seif completed Brand Starter. She could benefit from a Social Media Pack to maintain her online presence.", severity: "low", source: "ai", targetType: "client", targetId: "c8", isDismissed: false, isApplied: false, createdAt: daysAgo(3) },
-      { id: "ai3", type: "churn_risk", title: "Asha Rajab at risk of churn", description: "Client hasn't ordered in 100 days. Last project was FINAL_DELIVERED. Consider reaching out with a special offer.", severity: "high", source: "ai", targetType: "client", targetId: "c12", isDismissed: false, isApplied: false, createdAt: daysAgo(1) },
-      { id: "ai4", type: "payment_reminder", title: "Pending payment for Juma Bakari", description: "Retainer payment (100,000 TSh) is overdue. Send payment reminder.", severity: "high", source: "ai", targetType: "client", targetId: "c4", isDismissed: false, isApplied: false, createdAt: daysAgo(1) },
-      { id: "ai5", type: "payment_reminder", title: "Bi. Salama balance due", description: "50,000 TSh balance remaining on Thumbnails project p6.", severity: "medium", source: "ai", targetType: "project", targetId: "p6", isDismissed: false, isApplied: false, createdAt: daysAgo(2) },
-      { id: "ai6", type: "inactivity_alert", title: "Amina Kidogo has been dormant", description: "180 days since last contact. No projects completed. Consider removing from active list.", severity: "low", source: "ai", targetType: "client", targetId: "c5", isDismissed: false, isApplied: false, createdAt: daysAgo(5) },
-      { id: "ai7", type: "upsell", title: "Suggest retainer to Bwana Mfalme", description: "Bwana Mfalme has spent 1.2M TSh and has frequent projects. A retainer would save them money.", severity: "medium", source: "ai", targetType: "client", targetId: "c6", isDismissed: false, isApplied: false, createdAt: daysAgo(4) },
-      { id: "ai8", type: "churn_risk", title: "Hamisi Khamis may need re-engagement", description: "Last project was 200 days ago. Butcher shops have seasonal peaks - consider reaching out before Eid.", severity: "medium", source: "ai", targetType: "client", targetId: "c11", isDismissed: false, isApplied: false, createdAt: daysAgo(6) },
-      { id: "ai9", type: "quote_generation", title: "Pizza promo retainer opportunity", description: "Juma Mwinyi is on Weekly Promo Pack but graphics delivered is low (2/8). Adjust scope or send reminder.", severity: "medium", source: "ai", targetType: "client", targetId: "c30", isDismissed: false, isApplied: false, createdAt: daysAgo(3) },
-      { id: "ai10", type: "follow_up", title: "Sophia Lema awaiting logo preview", description: "Brand Starter in progress. Send preview to client who is eager to start marketing campaign.", severity: "high", source: "ai", targetType: "project", targetId: "p53", isDismissed: false, isApplied: true, createdAt: daysAgo(15) },
-      { id: "ai11", type: "workflow", title: "Automate greeting responses", description: "60% of inbound messages are greetings. Consider setting up an automated greeting response rule.", severity: "low", source: "ai", targetType: "settings", targetId: "automation", isDismissed: false, isApplied: false, createdAt: daysAgo(7) },
-      { id: "ai12", type: "insight", title: "Most profitable service: Brand Starter", description: "Brand Starter projects generate highest average revenue (275K TSh). Focus marketing on this service.", severity: "info", source: "ai", isDismissed: false, isApplied: false, createdAt: daysAgo(10) },
-      { id: "ai13", type: "insight", title: "Peak inquiry time: 2-4 PM", description: "Most client inquiries come between 2-4 PM. Schedule availability accordingly.", severity: "info", source: "ai", isDismissed: false, isApplied: false, createdAt: daysAgo(8) },
-      { id: "ai14", type: "content_suggestion", title: "Create Eid Mubarak posts", description: "Eid al-Adha approaching. Prepare templated posts for salon, restaurant, and barbershop clients.", severity: "medium", source: "ai", isDismissed: false, isApplied: false, createdAt: daysAgo(4) },
-      { id: "ai15", type: "workflow", title: "Retainer payment automation", description: "3 retainers have unpaid status. Set up auto-reminder for retainer payments.", severity: "high", source: "ai", isDismissed: false, isApplied: false, createdAt: daysAgo(2) },
-      { id: "ai16", type: "payment_reminder", title: "Mwanaisha Saleh overdue payment", description: "60,000 TSh overdue for product photography. Follow up with client.", severity: "high", source: "ai", targetType: "client", targetId: "c16", isDismissed: false, isApplied: false, createdAt: daysAgo(1) },
-      { id: "ai17", type: "upsell", title: "Suggest Video Edit service to Lulu", description: "Lulu Kikwete's dance studio would benefit from video editing for TikTok content.", severity: "low", source: "ai", targetType: "client", targetId: "c35", isDismissed: false, isApplied: false, createdAt: daysAgo(3) },
-      { id: "ai18", type: "churn_risk", title: "Salim Abdallah hasn't returned", description: "250 days since last business card order. Send a 'we miss you' message.", severity: "low", source: "ai", targetType: "client", targetId: "c21", isDismissed: true, isApplied: false, createdAt: daysAgo(20) },
-      { id: "ai19", type: "insight", title: "Kigamboni clients growth", description: "5 clients from Kigamboni. Consider local networking events in the area.", severity: "info", source: "ai", isDismissed: false, isApplied: false, createdAt: daysAgo(12) },
-      { id: "ai20", type: "quote_generation", title: "CV Redesign demand increasing", description: "3 CV Redesign inquiries this month suggesting growing student clientele. Consider bundle pricing.", severity: "low", source: "ai", isDismissed: false, isApplied: false, createdAt: daysAgo(6) },
-      { id: "ai21", type: "follow_up", title: "Check in with Mwajuma Hassan", description: "Ordered thumbnails once 190 days ago. Salon owners often need monthly content.", severity: "low", source: "ai", targetType: "client", targetId: "c25", isDismissed: false, isApplied: false, createdAt: daysAgo(9) },
-      { id: "ai22", type: "insight", title: "Referral source analysis", description: "Walk-in (8) and WhatsApp (6) are top referral sources. Invest more in WhatsApp Business.", severity: "info", source: "ai", isDismissed: false, isApplied: false, createdAt: daysAgo(11) },
-    ],
-  })
   await prisma.automationRule.createMany({
     data: [
       { id: "ar1", name: "Auto-reply to greetings", description: "When a WhatsApp message contains 'habari', 'mambo', or 'hello', send an automated greeting.", trigger: "message_received", conditions: [{ field: "content", operator: "contains", value: "habari" }], actions: [{ type: "SEND_WHATSAPP", params: { template: "greeting" } }], isActive: true, runCount: 47, lastRunAt: daysAgo(0), createdAt: daysAgo(30) },
@@ -452,7 +425,7 @@ async function main() {
     ],
   })
 
-  console.log("Seed complete: 1 user, 35 clients, 55 projects, 78 payments, 18 expenses, 7 retainers, 85 messages, 55 activities, 22 AI suggestions, 7 automation rules, 8 quick replies, 3 integrations")
+  console.log("Seed complete: 1 user, 35 clients, 55 projects, 78 payments, 18 expenses, 7 retainers, 85 messages, 55 activities, 7 automation rules, 8 quick replies, 3 integrations")
 }
 
 main()
