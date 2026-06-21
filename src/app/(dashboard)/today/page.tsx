@@ -240,11 +240,11 @@ export default function TodayPage() {
               <h2 className="text-label-lg font-bold text-on-surface">Today's Habits</h2>
             </div>
             <span className="text-xs font-bold text-on-surface-variant/80">
-              {briefing.habits.doneCount}/{briefing.habits.totalCount}
+              {briefing.habits?.doneCount ?? 0}/{briefing.habits?.totalCount ?? 0}
             </span>
           </div>
           <div className="space-y-1">
-            {briefing.habits.items.map((habit: any) => (
+            {(briefing.habits?.items ?? []).map((habit: any) => (
               <button
                 key={habit.id}
                 onClick={() => toggleHabit.mutate(habit.id)}
@@ -269,11 +269,11 @@ export default function TodayPage() {
               </button>
             ))}
           </div>
-          {briefing.habits.totalCount > 0 && (
+          {(briefing.habits?.totalCount ?? 0) > 0 && (
             <div className="mt-4 h-2 rounded-full bg-surface-variant/50 overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-secondary to-secondary/60 transition-all"
-                style={{ width: `${(briefing.habits.doneCount / briefing.habits.totalCount) * 100}%` }}
+                style={{ width: `${((briefing.habits?.doneCount ?? 0) / (briefing.habits?.totalCount ?? 1)) * 100}%` }}
               />
             </div>
           )}
@@ -286,9 +286,9 @@ export default function TodayPage() {
               <Target className="w-5 h-5 text-primary" />
               <h2 className="text-label-lg font-bold text-on-surface">Today's Focus</h2>
             </div>
-            {briefing.goals.today.length > 0 ? (
+            {(briefing.goals?.today ?? []).length > 0 ? (
               <ul className="space-y-2">
-                {briefing.goals.today.map((g: any) => (
+                {(briefing.goals?.today ?? []).map((g: any) => (
                   <li key={g.id} className="flex items-start gap-2 p-2.5 rounded-xl bg-surface-variant/30">
                     <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />
                     <p className="text-sm text-on-surface">{g.title}</p>
@@ -303,17 +303,17 @@ export default function TodayPage() {
             )}
             <div className="mt-4 flex items-center gap-4 text-sm text-on-surface-variant/80">
               <span className="flex items-center gap-1">
-                <Clock className="w-4 h-4" /> {briefing.focus.totalMinutes} min focused
+                <Clock className="w-4 h-4" /> {briefing.focus?.totalMinutes ?? 0} min focused
               </span>
               <span className="flex items-center gap-1">
-                <Zap className="w-4 h-4" /> {briefing.focus.sessionsCount} sessions
+                <Zap className="w-4 h-4" /> {briefing.focus?.sessionsCount ?? 0} sessions
               </span>
             </div>
           </div>
 
           {/* Goal Cascade Preview */}
           <div className="glass-card p-6">
-            <GoalHierarchy goals={briefing.goals.fullCascade} />
+            <GoalHierarchy goals={briefing.goals?.fullCascade ?? []} />
             <Link
               href="/goals"
               className="inline-flex items-center gap-1 text-xs font-bold text-primary mt-4 hover:underline"
@@ -330,11 +330,11 @@ export default function TodayPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <p className="text-xs font-bold text-on-surface-variant/80 uppercase tracking-wider mb-3">
-              Unpaid Payments ({briefing.upcoming.unpaidPayments.length})
+              Unpaid Payments ({(briefing.upcoming?.unpaidPayments ?? []).length})
             </p>
-            {briefing.upcoming.unpaidPayments.length > 0 ? (
+            {(briefing.upcoming?.unpaidPayments ?? []).length > 0 ? (
               <div className="space-y-2">
-                {briefing.upcoming.unpaidPayments.map((p: any) => (
+                {(briefing.upcoming?.unpaidPayments ?? []).map((p: any) => (
                   <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl bg-surface-variant/30">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-on-surface truncate">{p.clientName}</p>
@@ -354,11 +354,11 @@ export default function TodayPage() {
           </div>
           <div>
             <p className="text-xs font-bold text-on-surface-variant/80 uppercase tracking-wider mb-3">
-              Active Projects ({briefing.upcoming.activeProjects.length})
+              Active Projects ({(briefing.upcoming?.activeProjects ?? []).length})
             </p>
-            {briefing.upcoming.activeProjects.length > 0 ? (
+            {(briefing.upcoming?.activeProjects ?? []).length > 0 ? (
               <div className="space-y-2">
-                {briefing.upcoming.activeProjects.map((p: any) => (
+                {(briefing.upcoming?.activeProjects ?? []).map((p: any) => (
                   <div key={p.id} className="flex items-center justify-between p-2.5 rounded-xl bg-surface-variant/30">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-on-surface truncate">{p.title}</p>

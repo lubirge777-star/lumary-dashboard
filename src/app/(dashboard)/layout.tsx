@@ -274,7 +274,7 @@ export default function DashboardLayout({
           {sectionMeta.map(renderSection)}
 
           {/* Custom Pages */}
-          {customPages.length > 0 && (
+          {Array.isArray(customPages) && customPages.length > 0 && (
             <div>
               <div className="h-px bg-outline-variant/10 mx-4 my-3" />
               <p className="text-label-bold text-on-surface-variant uppercase px-4 mb-2 tracking-widest opacity-70">
