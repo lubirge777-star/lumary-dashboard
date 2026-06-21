@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, client })
-  } catch {
+  } catch (e) {
+    console.error("portal login error:", e)
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
   }
 }

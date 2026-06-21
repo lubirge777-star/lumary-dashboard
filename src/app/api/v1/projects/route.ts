@@ -18,15 +18,25 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json()
-  const project = await createProject(body)
-  return NextResponse.json(project, { status: 201 })
+  try {
+    const body = await req.json()
+    const project = await createProject(body)
+    return NextResponse.json(project, { status: 201 })
+  } catch (e) {
+    console.error("route handler error:", e)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function PATCH(req: NextRequest) {
-  const id = req.nextUrl.searchParams.get("id")
-  const status = req.nextUrl.searchParams.get("status")
-  if (!id || !status) return NextResponse.json({ error: "id and status required" }, { status: 400 })
-  const project = await updateProjectStatus(id, status as any)
-  return project ? NextResponse.json(project) : NextResponse.json({ error: "Not found" }, { status: 404 })
+  try {
+    const id = req.nextUrl.searchParams.get("id")
+    const status = req.nextUrl.searchParams.get("status")
+    if (!id || !status) return NextResponse.json({ error: "id and status required" }, { status: 400 })
+    const project = await updateProjectStatus(id, status as any)
+    return project ? NextResponse.json(project) : NextResponse.json({ error: "Not found" }, { status: 404 })
+  } catch (e) {
+    console.error("route handler error:", e)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

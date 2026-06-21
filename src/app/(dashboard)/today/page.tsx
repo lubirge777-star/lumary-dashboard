@@ -1,10 +1,10 @@
 "use client"
 
-import { useMemo, useEffect } from "react"
+import { useMemo, useEffect, useState } from "react"
 import Link from "next/link"
 import {
   Sun, Moon, Target, CheckSquare, TrendingUp,
-  Clock, AlertCircle, Zap, BookOpen, Star, ArrowRight, Sparkles,
+  Clock, AlertCircle, Zap, BookOpen, Star, ArrowRight,
 } from "lucide-react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { generateNudges, type Nudge } from "@/lib/nudges"
@@ -115,7 +115,7 @@ export default function TodayPage() {
   const queryClient = useQueryClient()
   const { data: briefing, isLoading, error } = useBriefing()
   const { data: config } = useConfig()
-  const dismissed = new Set<string>()
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set())
 
   const saveConfig = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
@@ -222,11 +222,11 @@ export default function TodayPage() {
       </div>
 
       {/* Nudges */}
-      {nudges.length > 0 && (
+      {nudges.filter((n) => !dismissed.has(n.id)).length > 0 && (
         <div className="space-y-2">
           <h2 className="text-label-sm font-bold text-on-surface-variant/80 uppercase tracking-wider px-1">Reminders</h2>
-          {nudges.map((n) => (
-            <NudgeCard key={n.id} nudge={n} onDismiss={(id) => dismissed.add(id)} />
+          {nudges.filter((n) => !dismissed.has(n.id)).map((n) => (
+            <NudgeCard key={n.id} nudge={n} onDismiss={(id) => setDismissed((prev) => new Set(prev).add(id))} />
           ))}
         </div>
       )}

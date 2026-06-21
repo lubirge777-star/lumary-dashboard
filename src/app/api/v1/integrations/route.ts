@@ -6,7 +6,8 @@ export async function GET() {
   try {
     const integrations = await prisma.integration.findMany({ orderBy: { createdAt: "desc" } })
     return NextResponse.json(integrations)
-  } catch {
+  } catch (e) {
+    console.error("integrations route error:", e)
     return NextResponse.json([])
   }
 }

@@ -16,15 +16,25 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json()
-  const retainer = await createRetainer(body)
-  return NextResponse.json(retainer, { status: 201 })
+  try {
+    const body = await req.json()
+    const retainer = await createRetainer(body)
+    return NextResponse.json(retainer, { status: 201 })
+  } catch (e) {
+    console.error("route handler error:", e)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function PATCH(req: NextRequest) {
-  const id = req.nextUrl.searchParams.get("id")
-  const delivered = req.nextUrl.searchParams.get("delivered")
-  if (!id || !delivered) return NextResponse.json({ error: "id and delivered required" }, { status: 400 })
-  const retainer = await updateRetainerContent(id, parseInt(delivered))
-  return retainer ? NextResponse.json(retainer) : NextResponse.json({ error: "Not found" }, { status: 404 })
+  try {
+    const id = req.nextUrl.searchParams.get("id")
+    const delivered = req.nextUrl.searchParams.get("delivered")
+    if (!id || !delivered) return NextResponse.json({ error: "id and delivered required" }, { status: 400 })
+    const retainer = await updateRetainerContent(id, parseInt(delivered))
+    return retainer ? NextResponse.json(retainer) : NextResponse.json({ error: "Not found" }, { status: 404 })
+  } catch (e) {
+    console.error("route handler error:", e)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

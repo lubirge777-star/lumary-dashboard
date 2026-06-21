@@ -9,7 +9,8 @@ export async function GET(req: NextRequest) {
     const where = projectId ? { projectId } : {}
     const checkups = await prisma.projectCheckup.findMany({ where, orderBy: { createdAt: "desc" } })
     return NextResponse.json(checkups)
-  } catch {
+  } catch (e) {
+    console.error("project checkup error:", e)
     return NextResponse.json([])
   }
 }

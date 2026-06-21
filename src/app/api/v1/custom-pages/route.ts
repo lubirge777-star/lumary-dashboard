@@ -3,8 +3,12 @@ import { NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 export async function GET() {
-  const pages = await prisma.customPage.findMany({ orderBy: { updatedAt: "desc" } })
-  return Response.json(pages)
+  try {
+    const pages = await prisma.customPage.findMany({ orderBy: { updatedAt: "desc" } })
+    return Response.json(pages)
+  } catch (err: any) {
+    return Response.json({ error: err.message }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -34,8 +38,12 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const id = req.nextUrl.searchParams.get("id")
-  if (!id) return Response.json({ error: "id required" }, { status: 400 })
-  await prisma.customPage.delete({ where: { id } })
-  return Response.json({ success: true })
+  try {
+    const id = req.nextUrl.searchParams.get("id")
+    if (!id) return Response.json({ error: "id required" }, { status: 400 })
+    await prisma.customPage.delete({ where: { id } })
+    return Response.json({ success: true })
+  } catch (err: any) {
+    return Response.json({ error: err.message }, { status: 500 })
+  }
 }

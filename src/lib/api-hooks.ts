@@ -217,14 +217,6 @@ export function useSettings() {
   })
 }
 
-export function useAISuggestions() {
-  return useQuery({
-    queryKey: ["ai-suggestions"],
-    queryFn: () => fetchJson("/api/v1/ai/suggestions"),
-    refetchInterval: 30000,
-  })
-}
-
 export function useAppointments() {
   return useQuery({
     queryKey: ["appointments"],
@@ -271,36 +263,6 @@ export function useDeleteAppointment() {
       toast("success", "Appointment Cancelled", "The appointment has been removed")
     },
     onError: (err: Error) => toast("error", "Failed", err.message),
-  })
-}
-
-export function useDismissAISuggestion() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) =>
-      fetchJson(`/api/v1/ai/suggestions?id=${id}`, { method: "PATCH" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["ai-suggestions"] }),
-  })
-}
-
-export function useAgentChat() {
-  return useMutation({
-    mutationFn: ({ message, history }: { message: string; history: any[] }) =>
-      fetchJson("/api/v1/agent/chat", {
-        method: "POST",
-        body: JSON.stringify({ message, history }),
-        headers: { "Content-Type": "application/json" },
-      }),
-  })
-}
-
-export function useUploadFile() {
-  return useMutation({
-    mutationFn: (file: File) => {
-      const formData = new FormData()
-      formData.append("file", file)
-      return fetchJson("/api/v1/agent/upload", { method: "POST", body: formData })
-    },
   })
 }
 
