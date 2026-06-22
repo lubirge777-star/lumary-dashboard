@@ -418,11 +418,7 @@ async function main() {
   })
 
   await prisma.integration.createMany({
-    data: [
-      { id: "int1", name: "Evolution API", status: "connected", config: { apiKey: process.env.EVOLUTION_API_KEY, url: "http://localhost:8080", instance: "lumary_business" }, lastSyncAt: daysAgo(0), createdAt: daysAgo(90) },
-      { id: "int2", name: "Chatwoot", status: "connected", config: { apiKey: process.env.CHATWOOT_API_KEY, url: "http://localhost:3003", accountId: 1 }, lastSyncAt: daysAgo(0), createdAt: daysAgo(85) },
-      { id: "int3", name: "Typebot", status: "connected", config: { apiKey: process.env.TYPEBOT_API_KEY, url: "http://localhost:8081" }, lastSyncAt: daysAgo(1), createdAt: daysAgo(80) },
-    ],
+    data: [],
   })
 
   console.log("Seed complete: 1 user, 35 clients, 55 projects, 78 payments, 18 expenses, 7 retainers, 85 messages, 55 activities, 7 automation rules, 8 quick replies, 3 integrations")

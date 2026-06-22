@@ -149,8 +149,6 @@ CREATE TABLE "Message" (
     "clientId" TEXT NOT NULL,
     "projectId" TEXT,
     "userId" TEXT,
-    "evolutionMessageId" TEXT,
-    "chatwootMessageId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Message_pkey" PRIMARY KEY ("id")
@@ -268,12 +266,6 @@ CREATE INDEX "Retainer_paymentStatus_idx" ON "Retainer"("paymentStatus");
 CREATE UNIQUE INDEX "Retainer_clientId_currentMonth_key" ON "Retainer"("clientId", "currentMonth");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Message_evolutionMessageId_key" ON "Message"("evolutionMessageId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Message_chatwootMessageId_key" ON "Message"("chatwootMessageId");
-
--- CreateIndex
 CREATE INDEX "Message_clientId_idx" ON "Message"("clientId");
 
 -- CreateIndex
@@ -281,9 +273,6 @@ CREATE INDEX "Message_channel_idx" ON "Message"("channel");
 
 -- CreateIndex
 CREATE INDEX "Message_createdAt_idx" ON "Message"("createdAt");
-
--- CreateIndex
-CREATE INDEX "Message_evolutionMessageId_idx" ON "Message"("evolutionMessageId");
 
 -- CreateIndex
 CREATE INDEX "Activity_targetType_targetId_idx" ON "Activity"("targetType", "targetId");

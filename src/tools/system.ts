@@ -156,7 +156,7 @@ export const systemTools: ToolDef[] = [
     name: "query_webhook_logs",
     description: "List recent webhook events from all sources.",
     parameters: {
-      source: { type: "string", description: "Filter by source (evolution, chatwoot, typebot)" },
+      source: { type: "string", description: "Filter by source (e.g., whatsapp, webhook)" },
       limit: { type: "number", description: "Max results (default 20)" },
     },
     handler: async (args) => {

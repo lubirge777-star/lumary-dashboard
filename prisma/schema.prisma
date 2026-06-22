@@ -180,8 +180,8 @@ model Message {
   project            Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   userId             String?
 
-  evolutionMessageId String?  @unique
-  chatwootMessageId  String?  @unique
+  // evolutionMessageId String?  @unique  — local-only, removed for Vercel
+  // chatwootMessageId  String?  @unique  — local-only, removed for Vercel
 
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

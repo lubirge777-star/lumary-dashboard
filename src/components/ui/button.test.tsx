@@ -9,8 +9,8 @@ describe("Button", () => {
   })
 
   it("applies variant classes", () => {
-    render(<Button variant="secondary">Secondary</Button>)
-    const btn = screen.getByText("Secondary")
+    render(<Button variant="ghost">Ghost</Button>)
+    const btn = screen.getByText("Ghost")
     expect(btn.className).toContain("bg-transparent")
   })
 

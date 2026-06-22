@@ -286,7 +286,7 @@ export interface ProjectCheckup {
 export interface Integration {
   id: string
   name: string
-  type: "whatsapp" | "claude" | "chatwoot" | "typebot" | "webhook" | "custom"
+  type: "whatsapp" | "claude" | "webhook" | "custom"
   status: "connected" | "disconnected" | "pending" | "error"
   config: Record<string, string>
   lastSyncAt?: string

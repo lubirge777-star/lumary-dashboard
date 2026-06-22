@@ -20,10 +20,14 @@ describe("formatTSh", () => {
     expect(formatTSh(0)).toContain("0")
   })
 
-  it("formats thousands", () => {
+  it("formats millions", () => {
     const result = formatTSh(1500000)
-    expect(result).toContain("1,500,000")
-    expect(result).toContain("TSh")
+    expect(result).toBe("TSh 1.5M")
+  })
+
+  it("formats thousands as K", () => {
+    const result = formatTSh(2500)
+    expect(result).toBe("TSh 2.5K")
   })
 
   it("formats small numbers", () => {

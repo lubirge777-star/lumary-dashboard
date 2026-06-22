@@ -147,12 +147,9 @@ All API routes live under `/api/v1/`:
 ### Messaging & Webhooks
 | Route | Method(s) | Description |
 |-------|-----------|-------------|
-| `/api/v1/messages/send` | POST | Send WhatsApp message via Evolution API |
+| `/api/v1/messages/send` | POST | Send WhatsApp message via Baileys bridge |
 | `/api/v1/inbox` | GET | Unified inbox (all channels, grouped by client) |
 | `/api/v1/templates` | GET, POST | Quick-reply templates |
-| `/api/v1/webhooks/evolution` | POST | Evolution API webhook receiver |
-| `/api/v1/webhooks/chatwoot` | POST | Chatwoot webhook receiver |
-| `/api/v1/webhooks/typebot` | POST | Typebot webhook receiver |
 | `/api/v1/webhooks/events` | GET | Webhook event log |
 | `/api/v1/whatsapp/qr` | GET | WhatsApp QR code for pairing |
 | `/api/v1/whatsapp/status` | GET | WhatsApp connection status |

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { AlertCircle, Settings as SettingsIcon, MessageSquare, Webhook, Download, Save, Check, X, Users, Trash2, ShieldAlert, Smartphone, RefreshCw, LogOut, Loader2, Bot, Globe, Key, MessageCircle, BarChart3, ExternalLink, Plus, Copy } from "lucide-react"
+import { AlertCircle, Settings as SettingsIcon, MessageSquare, Webhook, Download, Save, Check, X, Users, Trash2, ShieldAlert, Smartphone, RefreshCw, LogOut, Loader2, Bot, Key, MessageCircle, BarChart3, ExternalLink, Plus } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useRole } from "@/components/use-role"
 import { RoleBadge } from "@/components/use-role"
@@ -90,10 +90,9 @@ export default function SettingsPage() {
 
   const integrations = [
     { name: "WhatsApp (Baileys)", status: waState === "open" ? "connected" : waState === "connecting" ? "pending" : "disconnected", desc: waState === "open" ? "Connected and ready" : waState === "connecting" ? "Scan QR to connect" : "Disconnected" },
-    { name: "Chatwoot", status: "disconnected", desc: "Customer support platform" },
-    { name: "Typebot", status: "disconnected", desc: "Chatbot automation" },
+
     ...integrationsList
-      .filter((i: any) => i.type !== "whatsapp" && i.type !== "chatwoot" && i.type !== "typebot")
+      .filter((i: any) => i.type !== "whatsapp")
       .map((i: any) => ({ name: i.name, status: i.status, desc: i.type === "webhook" ? `Webhook: ${i.config?.url || ""}` : i.type === "claude" ? "Claude AI configured" : i.type === "custom" ? i.config?.description || "" : "" })),
   ]
 
@@ -135,10 +134,6 @@ export default function SettingsPage() {
         setWebhookUrl("")
       },
     })
-  }
-
-  const handleCopyWebhookUrl = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/api/v1/webhooks/evolution`)
   }
 
   const tabs = [
@@ -461,19 +456,6 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-surface-variant/10 border border-outline-variant/20">
-                <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-medium text-on-surface">Evolution API</span>
-                </div>
-                <button
-                  onClick={handleCopyWebhookUrl}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-outline-variant/20 text-on-surface-variant text-[10px] font-semibold hover:bg-outline-variant/30 transition-all"
-                >
-                  <Copy className="w-3 h-3" /> Copy URL
-                </button>
-              </div>
-
               {integrationsList.filter((i: any) => i.type === "webhook").map((wh: any) => (
                 <div key={wh.id} className="flex items-center justify-between p-3 rounded-xl bg-white border border-outline-variant/20">
                   <div className="flex items-center gap-2 min-w-0">
