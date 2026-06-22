@@ -7,48 +7,48 @@ datasource db {
   provider = "postgresql"
 }
 
-
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String
-  role      String @default("agent")
+  role      String   @default("agent")
   avatar    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   assignedProjects Project[] @relation("AssignedAgent")
   activities       Activity[]
+  customPages      CustomPage[]
 
-  @@index([email])
   @@index([role])
 }
 
 model Client {
-  id              String       @id @default(cuid())
-  name            String
-  whatsappNumber  String       @unique
-  email           String?
-  businessType    String?
-  location        String?
-  servicesUsed    String[]
-  totalSpent      Int          @default(0)
+  id               String    @id @default(cuid())
+  name             String
+  whatsappNumber   String    @unique
+  email            String?
+  businessType     String?
+  location         String?
+  servicesUsed     String[]
+  totalSpent       Int       @default(0)
   firstProjectDate DateTime?
-  lastProjectDate DateTime?
-  status          String @default("ACTIVE")
-  referralSource  String?
-  notes           String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  deletedAt       DateTime?
+  lastProjectDate  DateTime?
+  status           String    @default("active")
+  referralSource   String?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
 
   projects  Project[]
   payments  Payment[]
   retainers Retainer[]
   messages  Message[]
+  referrals Referral[]
+  appointments Appointment[]
 
   @@index([status])
-  @@index([whatsappNumber])
   @@index([referralSource])
   @@index([totalSpent])
   @@index([createdAt])
@@ -63,7 +63,7 @@ model Project {
   description     String?
   quotedAmount    Int
   depositAmount   Int?
-  status          String @default("NEW_INQUIRY")
+  status          String        @default("new_inquiry")
   priority        String?
   assignedAgentId String?
   assignedAgent   User?         @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
@@ -77,7 +77,7 @@ model Project {
 
   revisionsUsed   Int           @default(0)
   maxRevisions    Int           @default(2)
-  rushFee         Int?          @default(0)
+  rushFee         Int           @default(0)
 
   driveFolderUrl  String?
 
@@ -87,24 +87,28 @@ model Project {
   payments        Payment[]
   messages        Message[]
   steps           PipelineStep[]
+  appointments    Appointment[]
+  checkups        ProjectCheckup[]
 
   @@index([clientId])
   @@index([status])
   @@index([assignedAgentId])
+  @@index([serviceType])
+  @@index([priority])
   @@index([createdAt])
 }
 
 model Payment {
-  id             String        @id @default(cuid())
+  id             String   @id @default(cuid())
   clientId       String
-  client         Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   projectId      String?
-  project        Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project        Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   amount         Int
   usdEquiv       Int?
-  method         String @default("MPESA")
-  status         String @default("UNPAID")
+  method         String   @default("mpesa")
+  status         String   @default("unpaid")
 
   mpesaReference String?
   receiptUrl     String?
@@ -112,12 +116,15 @@ model Payment {
 
   notes          String?
   paidAt         DateTime?
-  createdAt      DateTime      @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([clientId])
   @@index([projectId])
   @@index([status])
+  @@index([method])
   @@index([paidAt])
+  @@index([createdAt])
 }
 
 model Expense {
@@ -128,60 +135,63 @@ model Expense {
   receipt     String?
   notes       String?
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([category])
   @@index([createdAt])
 }
 
 model Retainer {
-  id                String           @id @default(cuid())
+  id                String   @id @default(cuid())
   clientId          String
-  client            Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client            Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  package           String @default("CUSTOM")
+  package           String   @default("custom")
   monthlyValue      Int
   contentDueBy      DateTime
-  status            String           @default("active")
+  status            String   @default("active")
 
   currentMonth      String?
-  graphicsDue       Int              @default(12)
-  graphicsDelivered Int              @default(0)
+  graphicsDue       Int      @default(12)
+  graphicsDelivered Int      @default(0)
 
-  paymentStatus     String           @default("unpaid")
+  paymentStatus     String   @default("unpaid")
   lastPaymentDate   DateTime?
   nextPaymentDate   DateTime?
 
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@unique([clientId, currentMonth])
-  @@index([clientId])
   @@index([nextPaymentDate])
   @@index([paymentStatus])
 }
 
 model Message {
   id                 String   @id @default(cuid())
-  direction          String
-  channel            String
+  direction          String   @default("incoming")
+  channel            String   @default("whatsapp")
   content            String
   mediaUrl           String?
 
   clientId           String
   client             Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   projectId          String?
-  project            Project? @relation(fields: [projectId], references: [id])
+  project            Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   userId             String?
 
   evolutionMessageId String?  @unique
   chatwootMessageId  String?  @unique
 
   createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@index([clientId])
+  @@index([projectId])
+  @@index([userId])
   @@index([channel])
+  @@index([direction])
   @@index([createdAt])
-  @@index([evolutionMessageId])
 }
 
 model Activity {
@@ -195,46 +205,51 @@ model Activity {
 
   meta       Json?
   createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
-  user       User?        @relation(fields: [actorId], references: [id])
+  user       User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
+  @@index([actorId])
   @@index([targetType, targetId])
   @@index([type])
   @@index([createdAt])
 }
 
 model Appointment {
-  id        String   @id @default(cuid())
-  title     String
+  id          String   @id @default(cuid())
+  title       String
   description String?
-  startTime DateTime
-  endTime   DateTime?
-  allDay    Boolean  @default(false)
+  startTime   DateTime
+  endTime     DateTime?
+  allDay      Boolean  @default(false)
 
-  clientId  String?
-  projectId String?
+  clientId    String?
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  color     String?
-  status    String   @default("scheduled")
+  color       String?
+  status      String   @default("scheduled")
 
-  createdBy String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  @@index([startTime])
   @@index([clientId])
+  @@index([projectId])
+  @@index([startTime])
   @@index([status])
 }
 
 model Integration {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  status      String    @default("disconnected")
-  lastSyncAt  DateTime?
-  config      Json?
+  id           String   @id @default(cuid())
+  name         String   @unique
+  status       String   @default("disconnected")
+  lastSyncAt   DateTime?
+  config       Json?
   errorMessage String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([status])
 }
@@ -249,7 +264,6 @@ model QuickReply {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([shortcut])
   @@index([category])
 }
 
@@ -261,6 +275,7 @@ model WebhookLog {
   status    String   @default("received")
   error     String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([source])
   @@index([createdAt])
@@ -290,7 +305,7 @@ model AutomationRule {
 // ── Spec Feature Models ──────────────────────────────────────────────
 
 model ServicePricing {
-  id          String          @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   category    String
   floorTsh    Int
@@ -298,11 +313,11 @@ model ServicePricing {
   floorUsd    Int?
   ceilingUsd  Int?
   estimatedHr Float?
-  isActive    Boolean         @default(true)
-  sortOrder   Int             @default(0)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
   description String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([category])
   @@index([isActive])
@@ -312,13 +327,13 @@ model PipelineStep {
   id          String   @id @default(cuid())
   projectId   String
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  step        String   // inquiry | quote | deposit | brief | deliver | revise | final | followup
+  step        String
   completedAt DateTime?
   notes       String?
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([projectId, step])
-  @@index([projectId])
 }
 
 model IncomeLog {
@@ -332,6 +347,7 @@ model IncomeLog {
   unpaidAmount  Int      @default(0)
   notes         String?
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([weekStart])
 }
@@ -341,8 +357,8 @@ model WedgeLog {
   problem     String
   description String?
   clientCount Int      @default(1)
-  frequency   String?  // daily | weekly | monthly
-  potential   String?  // low | medium | high
+  frequency   String?
+  potential   String?
   notes       String?
   isProduct   Boolean  @default(false)
   createdAt   DateTime @default(now())
@@ -354,7 +370,7 @@ model WedgeLog {
 
 model LearningProgress {
   id          String    @id @default(cuid())
-  track       String    // coding | figma | english | aiguang | reading
+  track       String
   phase       String?
   taskName    String
   completedAt DateTime?
@@ -369,15 +385,15 @@ model LearningProgress {
 
 model ContentCalendar {
   id           String   @id @default(cuid())
-  platform     String   // tiktok | instagram | facebook | youtube | whatsapp
-  pillar       String?  // portfolio | education | personal | engagement
+  platform     String
+  pillar       String?
   contentText  String?
   mediaUrl     String?
   caption      String?
   hashtags     String?
   scheduledFor DateTime
   postedAt     DateTime?
-  status       String   @default("draft") // draft | scheduled | posted | cancelled
+  status       String   @default("draft")
   notes        String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -389,7 +405,7 @@ model ContentCalendar {
 
 model GrowthMilestone {
   id           String   @id @default(cuid())
-  period       String   // now | month1-2 | month2-4 | month4-6 | month6-10 | month10-14 | year2 | year3-5 | year5-10 | year10-20
+  period       String
   title        String
   targetIncome String?
   items        String[]
@@ -407,41 +423,43 @@ model GrowthMilestone {
 model ArabicSession {
   id        String   @id @default(cuid())
   date      DateTime @default(now())
-  type      String   // duo | quran | video | speak
+  type      String   @default("duo")
   duration  Int      @default(15)
   notes     String?
   streak    Int      @default(0)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([date])
   @@index([type])
 }
 
 model Grade {
-  id           String @id @default(cuid())
-  courseCode   String
-  courseName   String
-  instructor   String?
-  assignment   Float? @default(0)
-  midterm      Float? @default(0)
-  exam         Float? @default(0)
-  total        Float? @default(0)
-  targetExam   Float?
-  semester     String @default("2025/2026")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id         String @id @default(cuid())
+  courseCode String
+  courseName String
+  instructor String?
+  assignment Float? @default(0)
+  midterm    Float? @default(0)
+  exam       Float? @default(0)
+  total      Float? @default(0)
+  targetExam Float?
+  semester   String @default("2025/2026")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@unique([courseCode, semester])
   @@index([semester])
 }
 
 model Habit {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
-  icon      String   @default("✅")
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  icon      String    @default("✅")
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   logs HabitLog[]
 
@@ -455,6 +473,7 @@ model HabitLog {
   date      DateTime @default(now())
   completed Boolean  @default(false)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([habitId, date])
   @@index([date])
@@ -462,12 +481,13 @@ model HabitLog {
 
 model TimerSession {
   id        String   @id @default(cuid())
-  mode      String   @default("focus") // focus | short | long
+  mode      String   @default("focus")
   duration  Int      @default(25)
   taskLabel String?
   phase     String?
   completed Boolean  @default(true)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([createdAt])
   @@index([phase])
@@ -475,7 +495,7 @@ model TimerSession {
 
 model JournalEntry {
   id        String   @id @default(cuid())
-  category  String   @default("daily") // daily | learn | project | deen | mary | goal
+  category  String   @default("daily")
   title     String?
   content   String
   createdAt DateTime @default(now())
@@ -486,17 +506,17 @@ model JournalEntry {
 }
 
 model Book {
-  id          String   @id @default(cuid())
-  title       String
-  author      String?
-  pages       Int      @default(0)
-  status      String   @default("unread") // unread | reading | finished
-  rating      Int?
-  notes       String?
-  startedAt   DateTime?
-  finishedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  title      String
+  author     String?
+  pages      Int      @default(0)
+  status     String   @default("unread")
+  rating     Int?
+  notes      String?
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   sessions ReadingSession[]
 
@@ -511,6 +531,7 @@ model ReadingSession {
   date      DateTime @default(now())
   streak    Int      @default(0)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([bookId])
   @@index([date])
@@ -518,11 +539,11 @@ model ReadingSession {
 
 model Goal {
   id          String  @id @default(cuid())
-  level       String  // dream | year10 | year | quarter | month | week | today
+  level       String
   title       String
   description String?
   parentId    String?
-  parent      Goal?   @relation("GoalHierarchy", fields: [parentId], references: [id])
+  parent      Goal?   @relation("GoalHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children    Goal[]  @relation("GoalHierarchy")
   sortOrder   Int     @default(0)
   createdAt   DateTime @default(now())
@@ -533,14 +554,14 @@ model Goal {
 }
 
 model Idea {
-  id            String   @id @default(cuid())
-  problem       String
-  solution      String?
-  targetUser    String?
+  id              String   @id @default(cuid())
+  problem         String
+  solution        String?
+  targetUser      String?
   validationNotes String?
-  status        String   @default("idea") // idea | talking | building | validated | abandoned
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  status          String   @default("idea")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([status])
 }
@@ -551,13 +572,15 @@ model Contact {
   company       String?
   role          String?
   notes         String?
-  platform      String?  // linkedin | whatsapp | twitter | email | other
+  platform      String?
   profileUrl    String?
   lastContacted DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  @@index([name])
+  @@unique([name, platform])
+  @@index([company])
+  @@index([platform])
 }
 
 model Commitment {
@@ -575,15 +598,15 @@ model Commitment {
 }
 
 model SaasIdea {
-  id          String   @id @default(cuid())
-  name        String
+  id        String   @id @default(cuid())
+  name      String
   description String?
-  market      String?
-  techStack   String?
-  status      String   @default("idea") // idea | validating | building | live | abandoned
-  url         String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  market    String?
+  techStack String?
+  status    String   @default("idea")
+  url       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
 }
@@ -601,14 +624,13 @@ model WeeklyReview {
   updatedAt    DateTime @updatedAt
 
   @@unique([weekStart])
-  @@index([weekStart])
 }
 
 model PortfolioProject {
   id          String   @id @default(cuid())
   name        String
   description String?
-  status      String   @default("idea") // idea | building | shipped | earning
+  status      String   @default("idea")
   url         String?
   techStack   String?
   startedAt   DateTime?
@@ -624,39 +646,44 @@ model PortfolioProject {
 model SkillRating {
   id        String   @id @default(cuid())
   name      String   @unique
-  rating    Int      @default(5) // 1-10
-  category  String?  // dev | design | language | business
+  rating    Int      @default(5)
+  category  String?
+  tier      Int?
+  gap       String?
+  resources String?
+  notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([category])
+  @@index([tier])
 }
 
 model TrajectoryMilestone {
-  id          String   @id @default(cuid())
-  year        String   // year1 | year2 | year3 | year5 | year10
-  label       String
-  target      String?
-  income      String?
-  isCurrent   Boolean  @default(false)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  year      String
+  label     String
+  target    String?
+  income    String?
+  isCurrent Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([year])
 }
 
 model Movie {
-  id        String   @id @default(cuid())
-  key       String   @unique
-  title     String
-  year      Int
-  saga      String?
-  phase     String?
-  watched   Boolean  @default(false)
-  withMary  Boolean  @default(false)
-  rewatch   Boolean  @default(false)
-  category  String?  // mcu | datenight
+  id       String   @id @default(cuid())
+  key      String   @unique
+  title    String
+  year     Int
+  saga     String?
+  phase    String?
+  watched  Boolean  @default(false)
+  withMary Boolean  @default(false)
+  rewatch  Boolean  @default(false)
+  category String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -666,36 +693,38 @@ model Movie {
 }
 
 model UserConfig {
-  id    String @id @default(cuid())
-  key   String @unique
-  value String
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
   updatedAt DateTime @updatedAt
 }
 
 model ProjectCheckup {
-  id        String    @id @default(cuid())
-  projectId String
-  phase     String    @default("general")
-  question  String
-  answer    String?
-  status    String    @default("pending") // pending | answered | skipped
-  createdAt DateTime  @default(now())
+  id         String    @id @default(cuid())
+  projectId  String
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase      String    @default("general")
+  question   String
+  answer     String?
+  status     String    @default("pending")
+  createdAt  DateTime  @default(now())
   answeredAt DateTime?
-  updatedAt DateTime  @updatedAt
+  updatedAt  DateTime  @updatedAt
 
   @@index([projectId])
   @@index([status])
+  @@index([phase])
 }
 
 model WhatsAppSync {
-  id              String    @id @default(cuid())
-  state           String    @default("disconnected") // open | close | connecting | disconnected
-  messagesToday   Int       @default(0)
-  messagesTotal   Int       @default(0)
-  lastMessageAt   DateTime?
-  qr              String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  state         String    @default("disconnected")
+  messagesToday Int       @default(0)
+  messagesTotal Int       @default(0)
+  lastMessageAt DateTime?
+  qr            String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([state])
   @@index([createdAt])
@@ -720,11 +749,152 @@ model CustomPage {
   id        String   @id @default(cuid())
   title     String
   slug      String   @unique
-  config    Json     // { blocks: [...], layout: "grid"|"list", dataSource: "..." }
+  config    Json
   userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([slug])
+  @@index([userId])
   @@index([updatedAt])
+}
+
+// ── Business Spec v2 Models ───────────────────────────────────────────
+
+model RoutineSlot {
+  id        String   @id @default(cuid())
+  time      String
+  label     String
+  duration  Int
+  dayOfWeek Int?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs RoutineLog[]
+
+  @@index([dayOfWeek])
+  @@index([isActive])
+}
+
+model RoutineLog {
+  id             String      @id @default(cuid())
+  slotId         String
+  slot           RoutineSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  date           DateTime    @default(now())
+  completed      Boolean     @default(false)
+  durationActual Int?
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@unique([slotId, date])
+}
+
+model SocialMediaPost {
+  id           String   @id @default(cuid())
+  platform     String
+  pillar       String
+  contentType  String   @default("feed")
+  title        String?
+  contentUrl   String?
+  status       String   @default("draft")
+  scheduledFor DateTime?
+  postedAt     DateTime?
+  views        Int      @default(0)
+  likes        Int      @default(0)
+  comments     Int      @default(0)
+  saves        Int      @default(0)
+  shares       Int      @default(0)
+  dmsReceived  Int      @default(0)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([platform])
+  @@index([pillar])
+  @@index([contentType])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([postedAt])
+}
+
+model SocialMediaCollab {
+  id                String   @id @default(cuid())
+  partnerName       String
+  partnerHandle     String?
+  platform          String
+  followerCount     Int?
+  offer             String
+  deliverables      String?
+  postedAt          DateTime?
+  accepted          Boolean  @default(false)
+  convertedToClient Boolean  @default(false)
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([platform])
+  @@index([accepted])
+  @@index([convertedToClient])
+}
+
+model ChecklistItem {
+  id          String                @id @default(cuid())
+  category    String
+  title       String
+  description String?
+  isRequired  Boolean               @default(true)
+  sortOrder   Int                   @default(0)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  completions ChecklistCompletion[]
+
+  @@index([category])
+}
+
+model ChecklistCompletion {
+  id          String        @id @default(cuid())
+  itemId      String
+  item        ChecklistItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  completedAt DateTime      @default(now())
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([itemId, completedAt])
+  @@index([itemId])
+}
+
+model Referral {
+  id            String   @id @default(cuid())
+  clientId      String
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  referredName  String?
+  referredPhone String?
+  status        String   @default("asked")
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([clientId, referredPhone])
+  @@index([clientId])
+  @@index([status])
+}
+
+model ProductTransition {
+  id        String   @id @default(cuid())
+  stage     String
+  startedAt DateTime @default(now())
+  isCurrent Boolean  @default(true)
+  metrics   Json?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stage])
+  @@index([isCurrent])
+  @@index([startedAt])
 }

@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server"
+import { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET() {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const rows = await prisma.growthMilestone.findMany({
       orderBy: { sortOrder: "asc" },
@@ -14,6 +19,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
@@ -35,6 +43,9 @@ export async function PATCH(request: Request) {
     })
     return NextResponse.json(updated)
   } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
     console.error("milestones error:", e)
     return NextResponse.json({ error: "Failed to update milestone" }, { status: 500 })
   }

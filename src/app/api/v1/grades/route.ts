@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET() {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const items = await prisma.grade.findMany({ orderBy: { courseCode: "asc" } })
     return NextResponse.json({ items })
@@ -9,6 +13,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const body = await req.json()
     const item = await prisma.grade.upsert({
@@ -16,6 +23,6 @@ export async function POST(req: Request) {
       update: body,
       create: body,
     })
-    return NextResponse.json(item)
+    return NextResponse.json(item, { status: 201 })
   } catch (e) { console.error("grades error:", e); return NextResponse.json({ error: "Failed to create" }, { status: 500 }) }
 }

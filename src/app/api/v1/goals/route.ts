@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server"
+import { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET() {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const items = await prisma.goal.findMany({ orderBy: [{ level: "asc" }, { sortOrder: "asc" }] })
     return NextResponse.json({ items })
@@ -9,14 +14,20 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const body = await req.json()
     const item = await prisma.goal.create({ data: body })
-    return NextResponse.json(item)
+    return NextResponse.json(item, { status: 201 })
   } catch (e) { console.error("goals error:", e); return NextResponse.json({ error: "Failed to create" }, { status: 500 }) }
 }
 
 export async function PATCH(req: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
@@ -24,15 +35,26 @@ export async function PATCH(req: Request) {
     const body = await req.json()
     const item = await prisma.goal.update({ where: { id }, data: body })
     return NextResponse.json(item)
-  } catch (e) { console.error("goals error:", e); return NextResponse.json({ error: "Failed to update" }, { status: 500 }) }
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
+    console.error("goals error:", e); return NextResponse.json({ error: "Failed to update" }, { status: 500 }) }
 }
 
 export async function DELETE(req: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
     if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 })
     await prisma.goal.delete({ where: { id } })
     return NextResponse.json({ success: true })
-  } catch (e) { console.error("goals error:", e); return NextResponse.json({ error: "Failed to delete" }, { status: 500 }) }
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
+    console.error("goals error:", e); return NextResponse.json({ error: "Failed to delete" }, { status: 500 }) }
 }

@@ -179,4 +179,59 @@ export const personalTools: ToolDef[] = [
       return { success: true, data: progress }
     },
   },
+  {
+    name: "create_timer_session",
+    description: "Log a completed focus/timer session.",
+    parameters: {
+      duration: { type: "number", description: "Duration in minutes", required: true },
+      mode: { type: "string", description: "Session mode", enum: ["focus", "short", "long"] },
+      taskLabel: { type: "string", description: "What you worked on" },
+      phase: { type: "string", description: "Pomodoro phase (work, short_break, long_break)" },
+    },
+    handler: async (args) => {
+      const session = await prisma.timerSession.create({
+        data: {
+          duration: args.duration as number,
+          mode: (args.mode as string) ?? "focus",
+          taskLabel: (args.taskLabel as string) ?? null,
+          phase: (args.phase as string) ?? null,
+          completed: true,
+        },
+      })
+      return { success: true, data: session }
+    },
+  },
+  {
+    name: "update_book",
+    description: "Update book status, rating, or notes.",
+    parameters: {
+      bookId: { type: "string", description: "Book ID", required: true },
+      status: { type: "string", description: "Reading status", enum: ["unread", "reading", "finished"] },
+      rating: { type: "number", description: "Rating 1-10" },
+      notes: { type: "string", description: "Reading notes" },
+    },
+    handler: async (args) => {
+      const data: any = {}
+      if (args.status) {
+        data.status = args.status
+        if (args.status === "reading") data.startedAt = new Date()
+        if (args.status === "finished") data.finishedAt = new Date()
+      }
+      if (args.rating !== undefined) data.rating = args.rating
+      if (args.notes !== undefined) data.notes = args.notes
+      const book = await prisma.book.update({ where: { id: args.bookId as string }, data })
+      return { success: true, data: book }
+    },
+  },
+  {
+    name: "delete_book",
+    description: "Delete a book from the reading list.",
+    parameters: {
+      bookId: { type: "string", description: "Book ID", required: true },
+    },
+    handler: async (args) => {
+      await prisma.book.delete({ where: { id: args.bookId as string } })
+      return { success: true, data: { deleted: true } }
+    },
+  },
 ]

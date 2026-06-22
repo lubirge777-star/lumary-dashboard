@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getActivities } from "@/lib/data-service"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth()
+  if (auth) return auth
   try {
-    const page = parseInt(req.nextUrl.searchParams.get("page") || "1")
-    const pageSize = parseInt(req.nextUrl.searchParams.get("pageSize") || "50")
+    const page = Math.max(1, parseInt(req.nextUrl.searchParams.get("page") || "1"))
+    const pageSize = Math.min(100, Math.max(1, parseInt(req.nextUrl.searchParams.get("pageSize") || "50")))
     const result = await getActivities({ page, pageSize })
     return NextResponse.json(result)
   } catch (e) {

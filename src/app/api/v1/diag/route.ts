@@ -1,8 +1,12 @@
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@/generated/prisma/client"
 import { NextResponse } from "next/server"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET() {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   const results: Record<string, any> = {}
 
   // 1. Test raw SQL connection

@@ -1,6 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
+import dynamic from "next/dynamic"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   BookOpen, Code, PenTool, Globe, Palette, Layers, LayoutDashboard,
@@ -62,8 +64,86 @@ const skills = [
 
 const trackNames = ["Coding", "Figma", "English", "Content", "Design", "AI Tools", "Business"]
 
-export default function LearningPage() {
-  useEffect(() => { document.title = "Learning — LUMARY Studio" }, [])
+const TABS = [
+  { id: "learning", label: "Learning" },
+  { id: "reading", label: "Reading" },
+  { id: "arabic", label: "Arabic" },
+  { id: "grades", label: "Grades" },
+  { id: "roadmap", label: "Roadmap" },
+  { id: "figma-path", label: "Figma Path" },
+  { id: "resources", label: "Resources" },
+]
+
+const ReadingTab = dynamic(() => import("@/app/(dashboard)/reading/page"), {
+  ssr: false,
+  loading: () => <TabSkeleton />,
+})
+
+const ArabicTab = dynamic(() => import("@/app/(dashboard)/arabic/page"), {
+  ssr: false,
+  loading: () => <TabSkeleton />,
+})
+
+const GradesTab = dynamic(() => import("@/app/(dashboard)/grades/page"), {
+  ssr: false,
+  loading: () => <TabSkeleton />,
+})
+
+const RoadmapTab = dynamic(() => import("@/app/(dashboard)/roadmap/page"), {
+  ssr: false,
+  loading: () => <TabSkeleton />,
+})
+
+const FigmaPathTab = dynamic(() => import("@/app/(dashboard)/figma-path/page"), {
+  ssr: false,
+  loading: () => <TabSkeleton />,
+})
+
+const ResourcesTab = dynamic(() => import("@/app/(dashboard)/resources/page"), {
+  ssr: false,
+  loading: () => <TabSkeleton />,
+})
+
+function TabSkeleton() {
+  return (
+    <div className="space-y-gutter animate-fadeIn">
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="h-28 rounded-2xl bg-gradient-to-r from-surface-container-highest via-surface-container to-surface-container-highest bg-[length:200%_100%] animate-shimmer"
+        />
+      ))}
+    </div>
+  )
+}
+
+function TabBar({ activeTab }: { activeTab: string }) {
+  const router = useRouter()
+  const pathname = usePathname()
+
+  return (
+    <div className="glass-card p-1.5 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-1 min-w-max">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => router.push(`${pathname}?tab=${t.id}`)}
+            className={cn(
+              "px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap",
+              t.id === activeTab
+                ? "bg-primary text-on-primary shadow-sm"
+                : "text-on-surface-variant/80 hover:text-on-surface hover:bg-black/[0.03]"
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function LearningContent() {
   const queryClient = useQueryClient()
   const [isAdding, setIsAdding] = useState(false)
   const [newTrack, setNewTrack] = useState("Coding")
@@ -337,5 +417,37 @@ export default function LearningPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function LearningPageInner() {
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const tab = searchParams.get("tab") || "learning"
+
+  useEffect(() => {
+    const tabLabel = TABS.find((t) => t.id === tab)?.label || "Learning"
+    document.title = `${tabLabel} — LUMARY Studio`
+  }, [tab])
+
+  return (
+    <div className="space-y-6">
+      <TabBar activeTab={tab} />
+      {tab === "learning" && <LearningContent />}
+      {tab === "reading" && <ReadingTab />}
+      {tab === "arabic" && <ArabicTab />}
+      {tab === "grades" && <GradesTab />}
+      {tab === "roadmap" && <RoadmapTab />}
+      {tab === "figma-path" && <FigmaPathTab />}
+      {tab === "resources" && <ResourcesTab />}
+    </div>
+  )
+}
+
+export default function LearningPage() {
+  return (
+    <Suspense fallback={<TabSkeleton />}>
+      <LearningPageInner />
+    </Suspense>
   )
 }

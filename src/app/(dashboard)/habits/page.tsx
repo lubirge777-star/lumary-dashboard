@@ -2,12 +2,14 @@
 
 import { useState, useMemo, useEffect, useCallback, Suspense } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
+import dynamic from "next/dynamic"
 import {
   CheckCircle2, Moon, BookOpen, Brain, MessageSquare, Code,
   Activity, Heart, PenLine, Loader2, AlertCircle, RefreshCw, Flame,
+  Clock, TimerIcon,
 } from "lucide-react"
 import clsx from "clsx"
-import { useSearchParams } from "next/navigation"
 
 const HABIT_DEFS = [
   { id: "fajr", name: "Fajr on time", icon: Moon },
@@ -305,10 +307,34 @@ function HeatmapTab({ logs }: { logs: Record<string, unknown>[] }) {
   )
 }
 
+const TimerContent = dynamic(
+  () => import("@/app/(dashboard)/timer/page"),
+  { ssr: false, loading: () => <TabSkeleton /> }
+)
+
+const FocusContent = dynamic(
+  () => import("@/app/(dashboard)/focus/page"),
+  { ssr: false, loading: () => <TabSkeleton /> }
+)
+
+const OUTER_TABS = [
+  { key: "habits", label: "Habits", icon: CheckCircle2 },
+  { key: "timer", label: "Timer", icon: TimerIcon },
+  { key: "focus", label: "Focus", icon: Clock },
+]
+
+function TabSkeleton() {
+  return (
+    <div className="space-y-4 animate-fadeIn">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="animate-shimmer h-28 rounded-2xl bg-surface-container-low" />
+      ))}
+    </div>
+  )
+}
+
 function HabitsContent() {
-  const searchParams = useSearchParams()
-  const tabParam = searchParams.get("tab")
-  const [activeTab, setActiveTab] = useState(tabParam === "heatmap" ? "heatmap" : "today")
+  const [activeTab, setActiveTab] = useState("today")
   const queryClient = useQueryClient()
 
   const { data: habitsResp, isLoading: habitsLoading } = useQuery({
@@ -371,7 +397,7 @@ function HabitsContent() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Inner sub-tabs: Today / Heatmap */}
       <div className="flex gap-1 p-1 rounded-xl bg-surface-variant/50 w-fit">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key
@@ -399,11 +425,59 @@ function HabitsContent() {
   )
 }
 
-export default function HabitsPage() {
-  useEffect(() => { document.title = "Habits \u2014 LUMARY Studio" }, [])
+function HabitsPageTabs() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const tab = searchParams.get("tab") || "habits"
+
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      habits: "Habits",
+      timer: "Timer",
+      focus: "Focus Analytics",
+    }
+    document.title = `${titles[tab] || "Habits"} — LUMARY Studio`
+  }, [tab])
+
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
-      <HabitsContent />
+    <div className="space-y-gutter animate-fadeIn">
+      <div className="flex gap-1 p-1 rounded-xl bg-surface-variant/50 w-fit">
+        {OUTER_TABS.map((t) => {
+          const Icon = t.icon
+          return (
+            <button
+              key={t.key}
+              onClick={() => {
+                const params = new URLSearchParams(searchParams.toString())
+                params.set("tab", t.key)
+                router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+              }}
+              className={clsx(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all",
+                tab === t.key
+                  ? "bg-white dark:bg-surface-container-high text-on-surface shadow-sm"
+                  : "text-on-surface-variant/80 hover:text-on-surface"
+              )}
+            >
+              <Icon className="w-4 h-4" />
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {tab === "habits" && <HabitsContent />}
+      {tab === "timer" && <TimerContent />}
+      {tab === "focus" && <FocusContent />}
+    </div>
+  )
+}
+
+export default function HabitsPage() {
+  return (
+    <Suspense fallback={<TabSkeleton />}>
+      <HabitsPageTabs />
     </Suspense>
   )
 }

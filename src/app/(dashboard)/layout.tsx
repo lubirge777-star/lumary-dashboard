@@ -8,13 +8,14 @@ import {
   Repeat, Wallet, Settings,
   LogOut, Search, Mail, Zap, Calendar,
   Menu, X, BarChart3, ClipboardList,
-  Receipt, CalendarCheck, GraduationCap,
+  Receipt, GraduationCap,
   Lightbulb, MessageSquareReply,
   BookOpen, Clock, PenLine, Target, BookMarked,
   Palette, TrendingUp, Flame, Globe,
-  Trophy, Film, Heart, Building2,
+  Trophy, Film,
   CheckSquare, ListChecks, Eye, Briefcase, Cloud,
   Sun, Star, ChevronDown, Brain,
+  ArrowUpRight, Sparkles,
 } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import clsx from "clsx"
@@ -27,51 +28,34 @@ import { DarkModeToggle } from "@/components/dark-mode-toggle"
 
 const nav = {
   dashboard: [
-    { label: "Today", href: "/today", icon: Sun },
     { label: "Overview", href: "/", icon: LayoutDashboard },
   ],
   business: [
     { label: "Clients", href: "/clients", icon: Users },
-    { label: "Pipeline", href: "/projects", icon: Kanban },
-    { label: "Messages", href: "/messages", icon: Send },
+    { label: "Projects", href: "/projects", icon: Kanban },
     { label: "Finance", href: "/finance", icon: Wallet },
+    { label: "Comms", href: "/comms", icon: Send },
     { label: "Calendar", href: "/calendar", icon: Calendar },
-    { label: "Retainers", href: "/retainers", icon: Repeat },
     { label: "Analytics", href: "/analytics", icon: BarChart3 },
-    { label: "Content", href: "/content", icon: CalendarCheck },
   ],
   operations: [
-    { label: "Automation", href: "/automation", icon: Zap },
-    { label: "Templates", href: "/templates", icon: MessageSquareReply },
-    { label: "Pricing", href: "/pricing", icon: Receipt },
-    { label: "Operations", href: "/operations", icon: ClipboardList },
+    { label: "Ops Center", href: "/ops", icon: ClipboardList },
     { label: "Settings", href: "/settings", icon: Settings },
   ],
   growth: [
     { label: "Learning", href: "/learning", icon: Brain },
-    { label: "Roadmap", href: "/roadmap", icon: TrendingUp },
-    { label: "Figma", href: "/figma-path", icon: Palette },
+    { label: "Goals", href: "/goals", icon: Target },
     { label: "Skill Radar", href: "/skill-radar", icon: Eye },
-    { label: "Grades", href: "/grades", icon: GraduationCap },
-    { label: "Reading", href: "/reading", icon: BookOpen },
-    { label: "Resources", href: "/resources", icon: Globe },
   ],
   personal: [
-    { label: "Habits", href: "/habits", icon: CheckSquare },
-    { label: "Timer", href: "/timer", icon: Clock },
+    { label: "Habits & Timer", href: "/habits", icon: CheckSquare },
     { label: "Journal", href: "/journal", icon: PenLine },
-    { label: "Goals", href: "/goals", icon: Target },
-    { label: "Arabic", href: "/arabic", icon: BookMarked },
-    { label: "Focus", href: "/focus", icon: Zap },
-    { label: "Trajectory", href: "/trajectory", icon: Trophy },
+    { label: "Arabic", href: "/arabic", icon: BookOpen },
+    { label: "Grades", href: "/grades", icon: GraduationCap },
   ],
   ventures: [
-    { label: "Ideas", href: "/ideas", icon: Lightbulb },
-    { label: "Portfolio", href: "/portfolio", icon: Briefcase },
-    { label: "SaaS Bank", href: "/saas-bank", icon: Cloud },
+    { label: "Ventures", href: "/ventures", icon: Lightbulb },
     { label: "Network", href: "/network", icon: Users },
-    { label: "Accountability", href: "/accountability", icon: ListChecks },
-    { label: "Weekly Review", href: "/weekly-review", icon: ClipboardList },
   ],
   entertainment: [
     { label: "Movies", href: "/movies", icon: Film },
@@ -84,8 +68,8 @@ type NavItem = (typeof allItems)[number]
 const bottomNav = [
   { href: "/", icon: LayoutDashboard, label: "Home" },
   { href: "/clients", icon: Users, label: "Clients" },
-  { href: "/projects", icon: Kanban, label: "Pipeline" },
-  { href: "/messages", icon: Send, label: "Chat" },
+  { href: "/projects", icon: Kanban, label: "Projects" },
+  { href: "/comms", icon: Send, label: "Comms" },
   { href: "/finance", icon: BarChart3, label: "Finance" },
 ]
 

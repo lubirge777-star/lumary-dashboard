@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { updateAppointment, deleteAppointment } from "@/lib/data-service"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const { id } = await params
     const body = await request.json()
@@ -21,6 +25,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const { id } = await params
     const title = request.nextUrl.searchParams.get("title") || undefined

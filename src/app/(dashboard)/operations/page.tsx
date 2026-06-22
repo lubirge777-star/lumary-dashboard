@@ -43,10 +43,10 @@ export default function OperationsPage() {
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
-    const stored = localStorage.getItem("lumary-weekly-checklist")
-    if (stored) {
-      try { setCheckedItems(JSON.parse(stored)) } catch { /* ignore */ }
-    }
+    try {
+      const stored = localStorage.getItem("lumary-weekly-checklist")
+      if (stored) setCheckedItems(JSON.parse(stored))
+    } catch { /* localStorage unavailable */ }
   }, [])
 
   const toggleChecklist = (id: string) => {

@@ -1,9 +1,13 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useMemo, useEffect } from "react"
+import { useMemo, useEffect, useState, Suspense } from "react"
+import Link from "next/link"
+import { useSearchParams } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
 import { usePayments, useProjects, useClients, useActivities } from "@/lib/api-hooks"
 import { formatTSh } from "@/lib/utils"
+import { generateNudges, type Nudge } from "@/lib/nudges"
 import { ActivityFeed } from "@/components/activity-feed"
 import { RelatedLinks } from "@/components/related-links"
 import { AnimatedCounter } from "@/components/animated-counter"
@@ -16,6 +20,7 @@ import { EmptyState } from "@/components/ui/empty-state"
 import type { Payment, Client, Project } from "@/types"
 import {
   TrendingUp, Minus, Briefcase, AlertCircle, RefreshCw, Bot, Clock, DollarSign, Users,
+  ChevronDown, ChevronUp, Sun, Moon, Zap, Target, CheckSquare, ArrowRight, Star,
 } from "lucide-react"
 
 const RevenueChart = dynamic(
@@ -83,6 +88,166 @@ const KpiCard = ({
         </span>
         <span className="text-label-sm text-on-surface-variant/80">{trendLabel}</span>
       </div>
+    </div>
+  )
+}
+
+function useBriefing() {
+  return useQuery({
+    queryKey: ["today-briefing"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/today/briefing")
+      if (!res.ok) throw new Error("Failed to load briefing")
+      return res.json()
+    },
+    refetchInterval: 120000,
+  })
+}
+
+function NudgeCard({ nudge, onDismiss }: { nudge: Nudge; onDismiss: (id: string) => void }) {
+  const colors = {
+    high: "bg-error/10 border-error/20 text-error",
+    medium: "bg-secondary-container/10 border-secondary-container/30 text-secondary",
+    low: "bg-surface-variant/30 border-outline-variant/30 text-on-surface-variant",
+  }
+  const icons: Record<string, React.ElementType> = {
+    habit: CheckSquare, goal: Target, focus: Zap,
+    review: Clock, payment: TrendingUp, evening: Moon, milestone: Star,
+  }
+  const Icon = icons[nudge.type]
+
+  return (
+    <div className={`flex items-start gap-3 p-3 rounded-xl border ${colors[nudge.severity]}`}>
+      <Icon className="w-5 h-5 mt-0.5 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm">{nudge.message}</p>
+        {nudge.action && (
+          <Link
+            href={nudge.action.href}
+            className="inline-flex items-center gap-1 text-xs font-bold mt-1.5 hover:underline"
+          >
+            {nudge.action.label} <ArrowRight className="w-3 h-3" />
+          </Link>
+        )}
+      </div>
+      <button onClick={() => onDismiss(nudge.id)} className="text-on-surface-variant/50 hover:text-on-surface-variant shrink-0">
+        <span className="text-lg leading-none">&times;</span>
+      </button>
+    </div>
+  )
+}
+
+function MorningBriefingPanel() {
+  const searchParams = useSearchParams()
+  const briefingParam = searchParams.get("briefing")
+  const [open, setOpen] = useState(() => {
+    if (briefingParam === "true") return true
+    try {
+      return localStorage.getItem("lumary-briefing-dismissed") !== "true"
+    } catch { return true }
+  })
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set())
+  const { data: briefing, isLoading, error } = useBriefing()
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("lumary-briefing-dismissed", open ? "false" : "true")
+    } catch {}
+  }, [open])
+
+  const nudges: Nudge[] = useMemo(() => {
+    if (!briefing) return []
+    return generateNudges(briefing)
+  }, [briefing])
+
+  const isMorning = briefing?.mode === "morning"
+  const IconComp = briefing ? (isMorning ? Sun : briefing.mode === "evening" ? Moon : Zap) : Sun
+
+  return (
+    <div className="glass-card overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-4 p-card-padding bg-gradient-to-r from-primary/10 via-primary/5 to-transparent hover:from-primary/15 transition-colors"
+      >
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+          {isLoading ? (
+            <div className="w-5 h-5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          ) : (
+            <IconComp className="w-5 h-5 text-primary" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0 text-left">
+          <h3 className="text-sm font-bold text-on-surface">Morning Briefing</h3>
+          <p className="text-xs text-on-surface-variant/70">
+            {isLoading ? "Loading..." : error ? "Briefing unavailable" : "Your daily overview and reminders"}
+          </p>
+        </div>
+        {open ? <ChevronUp className="w-5 h-5 text-on-surface-variant/70" /> : <ChevronDown className="w-5 h-5 text-on-surface-variant/70" />}
+      </button>
+
+      {open && (
+        <div className="px-card-padding pb-card-padding space-y-4 animate-fadeIn">
+          {isLoading ? (
+            <div className="space-y-3 animate-pulse py-2">
+              <div className="h-16 bg-surface-variant/30 rounded-xl" />
+              <div className="h-24 bg-surface-variant/30 rounded-xl" />
+            </div>
+          ) : error ? (
+            <p className="text-sm text-on-surface-variant/70 py-2">Could not load briefing data.</p>
+          ) : briefing ? (
+            <>
+              {nudges.filter((n) => !dismissed.has(n.id)).length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-on-surface-variant/80 uppercase tracking-wider">Reminders</p>
+                  {nudges.filter((n) => !dismissed.has(n.id)).map((n) => (
+                    <NudgeCard key={n.id} nudge={n} onDismiss={(id) => setDismissed((prev) => new Set(prev).add(id))} />
+                  ))}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-variant/30">
+                  <CheckSquare className="w-5 h-5 text-secondary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-on-surface-variant/80">Habits</p>
+                    <p className="text-sm font-bold text-on-surface">{briefing.habits?.doneCount ?? 0}/{briefing.habits?.totalCount ?? 0}</p>
+                    {(briefing.habits?.totalCount ?? 0) > 0 && (
+                      <div className="mt-1.5 h-1.5 rounded-full bg-surface-variant/50 overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-secondary to-secondary/60 transition-all" style={{ width: `${((briefing.habits?.doneCount ?? 0) / (briefing.habits?.totalCount ?? 1)) * 100}%` }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-variant/30">
+                  <Target className="w-5 h-5 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-on-surface-variant/80">Today's Focus</p>
+                    <p className="text-sm font-bold text-on-surface">{briefing.goals?.today?.length ?? 0} goals</p>
+                    <p className="text-xs text-on-surface-variant/70">{briefing.focus?.totalMinutes ?? 0} min · {briefing.focus?.sessionsCount ?? 0} sessions</p>
+                  </div>
+                </div>
+              </div>
+
+              {(briefing.upcoming?.unpaidPayments ?? []).length > 0 && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-error/5 border border-error/10">
+                  <DollarSign className="w-5 h-5 text-error shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-on-surface">{(briefing.upcoming?.unpaidPayments ?? []).length} unpaid</p>
+                    <p className="text-xs text-on-surface-variant/70">Payments need attention</p>
+                  </div>
+                  <a href="/finance" className="text-xs font-bold text-error hover:underline shrink-0">View →</a>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <a href="/today" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+                  Full briefing <ArrowRight className="w-3 h-3" />
+                </a>
+              </div>
+            </>
+          ) : null}
+        </div>
+      )}
     </div>
   )
 }
@@ -197,6 +362,10 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-gutter">
+      <Suspense fallback={null}>
+        <MorningBriefingPanel />
+      </Suspense>
+
       {/* Quick Actions */}
       <QuickActions />
 

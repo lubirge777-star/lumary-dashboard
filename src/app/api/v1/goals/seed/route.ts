@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireAuth } from "@/lib/require-auth"
 
 const DEFAULT_GOALS: { level: string; title: string; description?: string; sortOrder: number }[] = [
   { level: "dream", title: "Build LUMARY into a leading East African AI-native agency", description: "A full-stack agency that combines design, AI, and strategy to serve global clients from Tanzania.", sortOrder: 0 },
@@ -12,13 +13,16 @@ const DEFAULT_GOALS: { level: string; title: string; description?: string; sortO
 ]
 
 export async function POST() {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const existing = await prisma.goal.count()
     if (existing > 0) return NextResponse.json({ message: "Goals already exist" }, { status: 200 })
 
     await prisma.goal.createMany({ data: DEFAULT_GOALS })
     const items = await prisma.goal.findMany({ orderBy: [{ level: "asc" }, { sortOrder: "asc" }] })
-    return NextResponse.json({ items })
+    return NextResponse.json({ items }, { status: 201 })
   } catch (e) {
     console.error("goals seed error:", e)
     return NextResponse.json({ error: "Failed to seed goals" }, { status: 500 })

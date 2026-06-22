@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server"
 import { getAppointments, createAppointment } from "@/lib/data-service"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET() {
+  const auth = await requireAuth()
+  if (auth) return auth
   try {
     const appointments = await getAppointments()
     return NextResponse.json(appointments)
@@ -12,6 +15,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
   try {
     const body = await req.json()
     const appointment = await createAppointment(body)

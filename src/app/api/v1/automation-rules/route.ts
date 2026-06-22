@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
 import { getAutomationRules, createAutomationRule, updateAutomationRule, deleteAutomationRule } from "@/lib/data-service"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET() {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const rules = await getAutomationRules()
     return NextResponse.json(rules)
@@ -12,6 +16,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const body = await request.json()
     const rule = await createAutomationRule(body)
@@ -23,6 +30,9 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const body = await request.json()
     const { id, ...data } = body
@@ -35,6 +45,9 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")

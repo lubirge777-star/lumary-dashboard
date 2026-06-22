@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getRetainers, createRetainer, updateRetainerContent } from "@/lib/data-service"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
-    const page = parseInt(req.nextUrl.searchParams.get("page") || "1")
-    const pageSize = parseInt(req.nextUrl.searchParams.get("pageSize") || "50")
+    const page = Math.max(1, parseInt(req.nextUrl.searchParams.get("page") || "1"))
+    const pageSize = Math.min(100, Math.max(1, parseInt(req.nextUrl.searchParams.get("pageSize") || "50")))
     const search = req.nextUrl.searchParams.get("search") || undefined
     const status = req.nextUrl.searchParams.get("status") || undefined
     const result = await getRetainers({ page, pageSize, search, status })
@@ -16,6 +20,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const body = await req.json()
     const retainer = await createRetainer(body)
@@ -27,6 +34,9 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const id = req.nextUrl.searchParams.get("id")
     const delivered = req.nextUrl.searchParams.get("delivered")

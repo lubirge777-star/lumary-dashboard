@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
+import { Prisma } from "@/generated/prisma/client"
 import { db } from "@/lib/data-service"
 import { auth } from "@/lib/auth"
 import { can } from "@/lib/permissions"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET() {
+  const authError = await requireAuth()
+  if (authError) return authError
+
   try {
     const session = await auth()
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -26,6 +31,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const authError = await requireAuth()
+  if (authError) return authError
+
   try {
     const session = await auth()
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -60,6 +68,9 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const authError = await requireAuth()
+  if (authError) return authError
+
   try {
     const session = await auth()
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -81,12 +92,18 @@ export async function PATCH(req: NextRequest) {
     })
     return NextResponse.json(user)
   } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
     console.error("route handler error:", e)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 export async function DELETE(req: NextRequest) {
+  const authError = await requireAuth()
+  if (authError) return authError
+
   try {
     const session = await auth()
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -109,6 +126,9 @@ export async function DELETE(req: NextRequest) {
     await p.user.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
     console.error("route handler error:", e)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }

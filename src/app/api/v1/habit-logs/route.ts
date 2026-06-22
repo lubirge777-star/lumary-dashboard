@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET() {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -16,6 +20,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const body = await req.json()
     const today = new Date()
@@ -25,6 +32,6 @@ export async function POST(req: Request) {
       update: { completed: body.completed ?? true },
       create: { habitId: body.habitId, date: today, completed: body.completed ?? true },
     })
-    return NextResponse.json(item)
+    return NextResponse.json(item, { status: 201 })
   } catch (e) { console.error("habit-logs error:", e); return NextResponse.json({ error: "Failed to log" }, { status: 500 }) }
 }

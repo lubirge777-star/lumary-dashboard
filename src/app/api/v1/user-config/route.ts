@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireAuth } from "@/lib/require-auth"
 
 const defaults: Record<string, string> = {
   mission: "Build LUMARY into the leading East African AI-native agency — empowering businesses with intelligent automation and design.",
@@ -8,6 +9,9 @@ const defaults: Record<string, string> = {
 }
 
 export async function GET() {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const configs = await prisma.userConfig.findMany()
     const map: Record<string, string> = { ...defaults }
@@ -20,6 +24,9 @@ export async function GET() {
 }
 
 export async function PUT(req: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const body = await req.json()
     const { key, value } = body

@@ -7,7 +7,7 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: P0stgr3s_2026
       POSTGRES_DB: lumi_crm
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -26,9 +26,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/lumi_crm?schema=public
-      NEXTAUTH_SECRET: change-me-in-production
+      DATABASE_URL: postgresql://postgres:P0stgr3s_2026@postgres:5432/lumi_crm?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:-lumary-dash-secret-32char-min-for-nextauth!!}
+      NEXTAUTH_SECRET: ${AUTH_SECRET:-lumary-dash-secret-32char-min-for-nextauth!!}
       NEXTAUTH_URL: http://localhost:3000
+      MCP_API_KEY: ${MCP_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

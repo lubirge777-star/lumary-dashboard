@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server"
+import { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET(request: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const { searchParams } = new URL(request.url)
     const track = searchParams.get("track")
@@ -18,6 +23,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const body = await request.json()
     const created = await prisma.learningProgress.create({ data: body })
@@ -29,6 +37,9 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
@@ -42,6 +53,9 @@ export async function PATCH(request: Request) {
     })
     return NextResponse.json(updated)
   } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
     console.error("learning error:", e)
     return NextResponse.json({ error: "Failed to update learning progress" }, { status: 500 })
   }

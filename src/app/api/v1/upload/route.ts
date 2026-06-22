@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
 import { randomUUID } from "crypto"
 import { auth } from "@/lib/auth"
+import { requireAuth } from "@/lib/require-auth"
 
 const ALLOWED_TYPES = [
   "image/jpeg", "image/png", "image/webp", "image/gif",
@@ -13,6 +14,9 @@ const ALLOWED_TYPES = [
 const MAX_SIZE = 10 * 1024 * 1024 // 10MB
 
 export async function POST(request: Request) {
+  const authError = await requireAuth()
+  if (authError) return authError
+
   const session = await auth()
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -46,7 +50,7 @@ export async function POST(request: Request) {
       size: file.size,
       type: file.type,
       url: `/uploads/${filename}`,
-    })
+    }, { status: 201 })
   } catch (error) {
     console.error("[Upload] Error:", error)
     return NextResponse.json({ error: "Upload failed" }, { status: 500 })

@@ -1,10 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
+import dynamic from "next/dynamic"
 import {
   Target, ChevronRight, Plus, X, Loader2, AlertCircle, RefreshCw,
-  Edit3, Trash2, Save,
+  Edit3, Trash2, Save, Compass, CheckCircle2,
 } from "lucide-react"
 import clsx from "clsx"
 import { useToast } from "@/components/ui/toast"
@@ -60,9 +62,33 @@ async function fetchJson(url: string, init?: RequestInit) {
   return res.json()
 }
 
-export default function GoalsPage() {
-  useEffect(() => { document.title = "Goals — LUMARY Studio" }, [])
+const TAB_DEFS = [
+  { key: "goals", label: "Goals", icon: Target },
+  { key: "trajectory", label: "Trajectory", icon: Compass },
+  { key: "accountability", label: "Accountability", icon: CheckCircle2 },
+]
 
+const TrajectoryContent = dynamic(
+  () => import("@/app/(dashboard)/trajectory/page"),
+  { ssr: false, loading: () => <TabSkeleton /> }
+)
+
+const AccountabilityContent = dynamic(
+  () => import("@/app/(dashboard)/accountability/page"),
+  { ssr: false, loading: () => <TabSkeleton /> }
+)
+
+function TabSkeleton() {
+  return (
+    <div className="space-y-4 animate-fadeIn">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="animate-shimmer h-28 rounded-2xl bg-surface-container-low" />
+      ))}
+    </div>
+  )
+}
+
+function GoalsTab() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
@@ -178,7 +204,6 @@ export default function GoalsPage() {
 
   return (
     <div className="space-y-gutter animate-fadeIn">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -212,7 +237,6 @@ export default function GoalsPage() {
 
             return (
               <div key={level.key} className="relative">
-                {/* Connector line */}
                 {idx < LEVELS.length - 1 && (
                   <div className="absolute left-8 top-16 bottom-0 w-px bg-outline-variant/30 z-0" />
                 )}
@@ -237,7 +261,6 @@ export default function GoalsPage() {
                     </button>
                   </div>
 
-                  {/* Add form */}
                   {isAdding && (
                     <div className="mb-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/20 animate-fadeIn space-y-3">
                       <input
@@ -273,7 +296,6 @@ export default function GoalsPage() {
                     </div>
                   )}
 
-                  {/* Goals list */}
                   {goals.length === 0 && !isAdding ? (
                     <p className="text-sm text-on-surface-variant/70 text-center py-4">
                       No goals yet. Click + to add one.
@@ -356,5 +378,62 @@ export default function GoalsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+function GoalsPageTabs() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const tab = searchParams.get("tab") || "goals"
+
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      goals: "Goals",
+      trajectory: "Trajectory",
+      accountability: "Accountability",
+    }
+    document.title = `${titles[tab] || "Goals"} — LUMARY Studio`
+  }, [tab])
+
+  return (
+    <div className="space-y-gutter animate-fadeIn">
+      <div className="flex gap-1 p-1 rounded-xl bg-surface-variant/50 w-fit">
+        {TAB_DEFS.map((t) => {
+          const Icon = t.icon
+          return (
+            <button
+              key={t.key}
+              onClick={() => {
+                const params = new URLSearchParams(searchParams.toString())
+                params.set("tab", t.key)
+                router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+              }}
+              className={clsx(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all",
+                tab === t.key
+                  ? "bg-white dark:bg-surface-container-high text-on-surface shadow-sm"
+                  : "text-on-surface-variant/80 hover:text-on-surface"
+              )}
+            >
+              <Icon className="w-4 h-4" />
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {tab === "goals" && <GoalsTab />}
+      {tab === "trajectory" && <TrajectoryContent />}
+      {tab === "accountability" && <AccountabilityContent />}
+    </div>
+  )
+}
+
+export default function GoalsPage() {
+  return (
+    <Suspense fallback={<TabSkeleton />}>
+      <GoalsPageTabs />
+    </Suspense>
   )
 }

@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server"
 import { sendWhatsApp } from "@/lib/whatsapp"
 import { saveMessage, createActivity, findClientByPhone } from "@/lib/data-service"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function POST(request: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const body = await request.json()
     const { to, message, clientId } = body

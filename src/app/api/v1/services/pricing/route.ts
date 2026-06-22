@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET() {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const rows = await prisma.servicePricing.findMany({
       where: { isActive: true },
@@ -15,6 +19,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const body = await request.json()
     const created = await prisma.servicePricing.create({ data: body })

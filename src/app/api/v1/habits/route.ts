@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
+import { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
+import { requireAuth } from "@/lib/require-auth"
 
 const HABIT_DEFAULTS = [
   "Fajr on time", "Quran 1 page", "Exercise / walk", "Arabic 30 min",
@@ -8,6 +10,9 @@ const HABIT_DEFAULTS = [
 ]
 
 export async function GET() {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     let items = await prisma.habit.findMany({ orderBy: { sortOrder: "asc" }, include: { logs: { take: 7, orderBy: { date: "desc" } } } })
     if (items.length === 0) {
@@ -24,14 +29,20 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const body = await req.json()
     const item = await prisma.habit.create({ data: body })
-    return NextResponse.json(item)
+    return NextResponse.json(item, { status: 201 })
   } catch (e) { console.error("habits error:", e); return NextResponse.json({ error: "Failed to create" }, { status: 500 }) }
 }
 
 export async function PATCH(req: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
@@ -39,5 +50,9 @@ export async function PATCH(req: Request) {
     const body = await req.json()
     const item = await prisma.habit.update({ where: { id }, data: body })
     return NextResponse.json(item)
-  } catch (e) { console.error("habits error:", e); return NextResponse.json({ error: "Failed to update" }, { status: 500 }) }
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
+    console.error("habits error:", e); return NextResponse.json({ error: "Failed to update" }, { status: 500 }) }
 }

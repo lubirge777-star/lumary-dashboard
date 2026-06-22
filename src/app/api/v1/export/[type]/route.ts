@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getClients, getProjects, getPayments, getExpenses, getFinanceSummary } from "@/lib/data-service"
+import { requireAuth } from "@/lib/require-auth"
 
 function escapeCSV(val: unknown): string {
   const str = val == null ? "" : String(val)
@@ -19,6 +20,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ type: string }> }
 ) {
+  const authError = await requireAuth()
+  if (authError) return authError
+
   try {
     const { type } = await params
 

@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getPayments } from "@/lib/data-service"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const { id } = await params
     const result = await getPayments()

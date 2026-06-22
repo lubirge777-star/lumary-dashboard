@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const { id } = await params
     const rows = await prisma.pipelineStep.findMany({
@@ -22,6 +26,9 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const { id } = await params
     const body = await request.json()
@@ -39,7 +46,7 @@ export async function POST(
         notes: body.notes ?? null,
       },
     })
-    return NextResponse.json(step)
+    return NextResponse.json(step, { status: 201 })
   } catch (e: any) {
     console.error(e)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

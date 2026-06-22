@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server"
+import { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
+import { requireAuth } from "@/lib/require-auth"
 
 export async function GET(request: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const { searchParams } = new URL(request.url)
     const weeks = parseInt(searchParams.get("weeks") ?? "8")
@@ -21,6 +26,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireAuth()
+  if (auth) return auth
+
   try {
     const body = await request.json()
     const now = new Date()
@@ -54,6 +62,9 @@ export async function POST(request: Request) {
     })
     return NextResponse.json(created, { status: 201 })
   } catch (e: any) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
+      return NextResponse.json({ error: "Not found" }, { status: 404 })
+    }
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
 }

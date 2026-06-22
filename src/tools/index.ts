@@ -8,6 +8,10 @@ import { personalTools } from "./personal"
 import { reminderTools } from "./reminders"
 import { scheduleTools } from "./schedule"
 import { systemTools } from "./system"
+import { ventureTools } from "./ventures"
+import { growthTools } from "./growth"
+import { mediaContentTools } from "./media-content"
+import { businessGrowthTools } from "./business-growth"
 
 const allTools: ToolDef[] = [
   ...dashboardTools,
@@ -19,6 +23,10 @@ const allTools: ToolDef[] = [
   ...reminderTools,
   ...scheduleTools,
   ...systemTools,
+  ...ventureTools,
+  ...growthTools,
+  ...mediaContentTools,
+  ...businessGrowthTools,
 ]
 
 const toolMap = new Map(allTools.map((t) => [t.name, t]))
